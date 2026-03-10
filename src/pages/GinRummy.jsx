@@ -111,7 +111,7 @@ function dealGame() {
 }
 
 // ── Card component ────────────────────────────────────────────
-function Card({ card, faceDown, selected, meld, onClick, small }) {
+function Card({ card, faceDown, selected, meld, newCard, onClick, small }) {
   const sz = small ? { w: 44, h: 62, fs: 11 } : { w: 58, h: 82, fs: 14 }
   if (faceDown) return (
     <div onClick={onClick} style={{
@@ -124,8 +124,8 @@ function Card({ card, faceDown, selected, meld, onClick, small }) {
   return (
     <div onClick={onClick} style={{
       width: sz.w, height: sz.h, borderRadius: 6, flexShrink: 0,
-      background: selected ? '#fef9c3' : meld ? '#dcfce7' : 'white',
-      border: `2px solid ${selected ? '#f59e0b' : meld ? '#22c55e' : '#d4d0c8'}`,
+      background: selected ? '#fef9c3' : newCard ? '#eff6ff' : meld ? '#dcfce7' : 'white',
+      border: `2px solid ${selected ? '#f59e0b' : newCard ? '#3b82f6' : meld ? '#22c55e' : '#d4d0c8'}`,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       padding: '3px 4px', cursor: onClick ? 'pointer' : 'default',
       boxShadow: selected ? '0 0 0 2px #f59e0b40' : '0 1px 3px rgba(0,0,0,0.1)',
@@ -146,7 +146,7 @@ export default function GinRummy() {
   const [game, setGame] = useState(() => dealGame())
   const [selected, setSelected] = useState(null)       // card id selected for discard
   const [phase, setPhase] = useState('draw')            // draw | discard | computer | result
-  const [drawnFrom, setDrawnFrom] = useState(null)
+  const [drawnCardId, setDrawnCardId] = useState(null) // highlights the just-drawn card
   const [message, setMessage] = useState('Draw a card to start!')
   const [roundResult, setRoundResult] = useState(null)
 
@@ -165,7 +165,7 @@ export default function GinRummy() {
       drawn = newDiscard.pop()
     }
     setGame(g => ({ ...g, playerHand: [...g.playerHand, drawn], stock: newStock, discard: newDiscard }))
-    setDrawnFrom(from)
+    setDrawnCardId(drawn.id)
     setPhase('discard')
     setMessage('Select a card to discard.')
   }
@@ -181,6 +181,7 @@ export default function GinRummy() {
     const newHand = playerHand.filter(c => c.id !== selected)
     const newDiscard = [...discard, card]
     setSelected(null)
+    setDrawnCardId(null)
     setGame(g => ({ ...g, playerHand: newHand, discard: newDiscard }))
     setPhase('computer')
     setMessage('Computer is thinking...')
@@ -261,6 +262,17 @@ export default function GinRummy() {
     setMessage('New round! Draw a card.')
     setRoundResult(null)
     setSelected(null)
+    setDrawnCardId(null)
+  }
+
+  // Sort hand into 4 suit rows: ♠ ♣ ♥ ♦, each A→K
+  function sortedBySuit(hand) {
+    return SUITS.map(suit => ({
+      suit,
+      cards: hand
+        .filter(c => c.suit === suit)
+        .sort((a, b) => RANK_IDX[a.rank] - RANK_IDX[b.rank]),
+    })).filter(row => row.cards.length > 0)
   }
 
   const canKnock = phase === 'discard' && playerDW <= 10
@@ -316,22 +328,30 @@ export default function GinRummy() {
           </div>
         </div>
 
-        {/* Player hand */}
+        {/* Player hand — 4 suit rows, A→K */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">
             Your hand — Deadwood: <span className="text-ink font-bold">{playerDW}</span>
             {playerHand.length === 11 && <span className="text-accent ml-2">← select card to discard</span>}
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {playerHand.map(c => (
-              <Card
-                key={c.id}
-                card={c}
-                selected={selected === c.id}
-                meld={meldedIds.has(c.id) && !selected}
-                onClick={() => selectCard(c.id)}
-                small
-              />
+          <div className="flex flex-col gap-1.5">
+            {sortedBySuit(playerHand).map(({ suit, cards }) => (
+              <div key={suit} className="flex gap-1.5 items-center">
+                <span className={`text-xs w-4 shrink-0 font-bold ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>{suit}</span>
+                <div className="flex gap-1.5 flex-wrap">
+                  {cards.map(c => (
+                    <Card
+                      key={c.id}
+                      card={c}
+                      selected={selected === c.id}
+                      meld={meldedIds.has(c.id) && selected !== c.id}
+                      newCard={drawnCardId === c.id}
+                      onClick={() => selectCard(c.id)}
+                      small
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -387,9 +407,10 @@ export default function GinRummy() {
         )}
 
         {/* Meld legend */}
-        <div className="text-xs text-ink/40 flex gap-4">
-          <span><span className="inline-block w-3 h-3 rounded bg-green-100 border border-green-400 mr-1" />Melded card</span>
+        <div className="text-xs text-ink/40 flex gap-4 flex-wrap">
+          <span><span className="inline-block w-3 h-3 rounded bg-green-100 border border-green-400 mr-1" />Melded</span>
           <span><span className="inline-block w-3 h-3 rounded bg-yellow-100 border border-yellow-400 mr-1" />Selected</span>
+          <span><span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-400 mr-1" />Just drawn</span>
         </div>
       </main>
     </div>
