@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const WINNING_LINES = [
   [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
@@ -68,6 +68,7 @@ function bestMove(squares) {
 export default function TicTacToe() {
   const [squares, setSquares] = useState(Array(9).fill(null))
   const [thinking, setThinking] = useState(false)
+  const pendingRef = useRef(false)
 
   const winner = checkWinner(squares)
   const draw = isDraw(squares)
@@ -75,8 +76,10 @@ export default function TicTacToe() {
   const playerTurn = !gameOver && !thinking && squares.filter(Boolean).length % 2 === 0
 
   useEffect(() => {
-    // Computer's turn: when it's O's move
-    if (!gameOver && !thinking && squares.filter(Boolean).length % 2 === 1) {
+    // Computer's turn: odd number of filled squares = O's move
+    const isComputerTurn = !gameOver && squares.filter(Boolean).length % 2 === 1
+    if (isComputerTurn && !pendingRef.current) {
+      pendingRef.current = true
       setThinking(true)
       const timer = setTimeout(() => {
         const move = bestMove([...squares])
@@ -85,11 +88,15 @@ export default function TicTacToe() {
           next[move] = 'O'
           setSquares(next)
         }
+        pendingRef.current = false
         setThinking(false)
       }, 100)
-      return () => clearTimeout(timer)
+      return () => {
+        clearTimeout(timer)
+        pendingRef.current = false
+      }
     }
-  }, [squares, gameOver, thinking])
+  }, [squares, gameOver]) // intentionally excludes `thinking` to avoid cancelling the timer on re-render
 
   function handleClick(i) {
     if (!playerTurn || squares[i]) return
@@ -99,6 +106,7 @@ export default function TicTacToe() {
   }
 
   function reset() {
+    pendingRef.current = false
     setSquares(Array(9).fill(null))
     setThinking(false)
   }
