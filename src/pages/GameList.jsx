@@ -2,9 +2,16 @@ const games = [
   {
     id: 'tictactoe',
     name: 'Tic-Tac-Toe',
-    description: 'Classic 3×3 grid game. Play against an unbeatable computer opponent using minimax.',
+    description: 'Classic 3×3 grid game. Configurable board size and win length. Easy / Medium / Hard AI.',
     emoji: '⭕',
     hash: '#/tictactoe',
+  },
+  {
+    id: 'tictactoe3d',
+    name: '3D Tic-Tac-Toe',
+    description: 'Classic Tic-Tac-Toe across three layers. Get 3 in a row in any direction — 49 winning lines total.',
+    emoji: '🧊',
+    hash: '#/tictactoe3d',
   },
 ]
 
