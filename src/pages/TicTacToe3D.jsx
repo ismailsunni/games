@@ -126,11 +126,52 @@ function hardMove(squares) {
   return move
 }
 
-// ── Cube View ────────────────────────────────────────────────
-const CELL = 58   // px per cell
-const GAP = 6     // px gap between cells
-const GRID = CELL * 3 + GAP * 2  // 186px total grid
-const LAYER_GAP = 95  // z-distance between layers
+// ── Cube View — Rubik's style ─────────────────────────────────
+const CS = 50      // cube face size (px)
+const CG = 8       // gap between cubes
+const CD = CS      // cube depth = same as face = perfect cube
+const LAYER_Z = CS + CG  // z-step between layers
+const GRID = CS * 3 + CG * 2  // total grid width/height
+
+// One 3D cube cell
+function RubikCell({ sq, isWin, isEmpty, onClick }) {
+  const front  = isWin ? '#22c55e' : sq === 'X' ? '#e63946' : sq === 'O' ? '#edeae3' : '#f8f6f1'
+  const side   = '#111827'
+  const h = CS / 2
+  const faceStyle = (transform, bg, extra = {}) => ({
+    position: 'absolute', width: CS, height: CS,
+    background: bg, transform, ...extra,
+  })
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        width: CS, height: CS,
+        position: 'relative',
+        transformStyle: 'preserve-3d',
+        cursor: isEmpty ? 'pointer' : 'default',
+      }}
+    >
+      {/* Front */}
+      <div style={faceStyle(`translateZ(${h}px)`, front, {
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: CS * 0.38, fontWeight: 800,
+        color: sq === 'X' ? '#fff' : '#1a1a2e',
+        borderRadius: 3,
+      })}>{sq}</div>
+      {/* Back */}
+      <div style={faceStyle(`rotateY(180deg) translateZ(${h}px)`, side, { borderRadius: 3 })} />
+      {/* Left */}
+      <div style={{ ...faceStyle('', side), width: CD, transformOrigin: 'left center', transform: `rotateY(-90deg) translateZ(0px)`, left: 0, borderRadius: 3 }} />
+      {/* Right */}
+      <div style={{ ...faceStyle('', side), width: CD, transformOrigin: 'right center', transform: `rotateY(90deg) translateZ(0px)`, right: 0, borderRadius: 3 }} />
+      {/* Top */}
+      <div style={{ ...faceStyle('', side), height: CD, transformOrigin: 'top center', transform: `rotateX(90deg) translateZ(0px)`, top: 0, borderRadius: 3 }} />
+      {/* Bottom */}
+      <div style={{ ...faceStyle('', side), height: CD, transformOrigin: 'bottom center', transform: `rotateX(-90deg) translateZ(0px)`, bottom: 0, borderRadius: 3 }} />
+    </div>
+  )
+}
 
 function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
   const [rotX, setRotX] = useState(-25)
@@ -154,9 +195,8 @@ function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
   return (
     <div
       style={{
-        perspective: '900px',
-        width: GRID + 80,
-        height: GRID + 80,
+        perspective: '1000px',
+        width: GRID + 120, height: GRID + 120,
         margin: 'auto',
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none',
@@ -167,9 +207,8 @@ function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
       onPointerLeave={onPointerUp}
     >
       <div style={{
-        width: GRID,
-        height: GRID,
-        margin: 40,
+        width: GRID, height: GRID,
+        margin: 60,
         position: 'relative',
         transformStyle: 'preserve-3d',
         transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)`,
@@ -177,63 +216,29 @@ function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
       }}>
         {[0, 1, 2].map(layer => (
           <div key={layer} style={{
-            position: 'absolute',
-            top: 0, left: 0,
-            width: GRID,
-            height: GRID,
+            position: 'absolute', top: 0, left: 0,
+            width: GRID, height: GRID,
             transformStyle: 'preserve-3d',
-            transform: `translateZ(${(layer - 1) * LAYER_GAP}px)`,
+            // centre layer at z=0, others offset by ±LAYER_Z
+            transform: `translateZ(${(layer - 1) * LAYER_Z}px)`,
           }}>
-            {/* Subtle layer background plane */}
-            <div style={{
-              position: 'absolute', inset: -4,
-              background: `rgba(237,234,227,${0.06 + layer * 0.04})`,
-              border: '1px solid rgba(26,26,46,0.08)',
-              borderRadius: 10,
-              pointerEvents: 'none',
-            }} />
-            {/* Cells */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: `repeat(3, ${CELL}px)`,
-              gridTemplateRows: `repeat(3, ${CELL}px)`,
-              gap: GAP,
-              width: GRID,
-              height: GRID,
-              position: 'relative',
+              gridTemplateColumns: `repeat(3, ${CS}px)`,
+              gridTemplateRows: `repeat(3, ${CS}px)`,
+              gap: CG,
+              transformStyle: 'preserve-3d',
             }}>
               {Array.from({ length: 9 }, (_, i) => {
                 const sqIdx = layer * 9 + i
-                const sq = squares[sqIdx]
-                const isWin = winLine.has(sqIdx)
-                const isEmpty = !sq && playerTurn
-                const bg = isWin ? 'rgba(187,247,208,0.85)'
-                  : sq === 'X' ? 'rgba(254,226,226,0.75)'
-                  : sq === 'O' ? 'rgba(237,234,227,0.75)'
-                  : 'rgba(255,255,255,0.45)'
-                const border = isWin ? '2px solid #22c55e'
-                  : sq === 'X' ? '2px solid rgba(230,57,70,0.5)'
-                  : sq === 'O' ? '2px solid rgba(26,26,46,0.25)'
-                  : '2px solid rgba(26,26,46,0.12)'
-                const color = isWin ? '#15803d'
-                  : sq === 'X' ? '#e63946'
-                  : '#1a1a2e'
                 return (
-                  <button
+                  <RubikCell
                     key={i}
+                    sq={squares[sqIdx]}
+                    isWin={winLine.has(sqIdx)}
+                    isEmpty={!squares[sqIdx] && playerTurn}
                     onClick={() => onCellClick(sqIdx)}
-                    style={{
-                      width: CELL, height: CELL,
-                      background: bg, border, color,
-                      borderRadius: 8,
-                      fontSize: 22, fontWeight: 700,
-                      cursor: isEmpty ? 'pointer' : 'default',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'background 0.15s',
-                    }}
-                  >
-                    {sq}
-                  </button>
+                  />
                 )
               })}
             </div>
