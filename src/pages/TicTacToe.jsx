@@ -1,46 +1,102 @@
 import { useState, useEffect, useRef } from 'react'
 
-const WINNING_LINES = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-  [0, 3, 6], [1, 4, 7], [2, 5, 8], // cols
-  [0, 4, 8], [2, 4, 6],            // diagonals
-]
+// Generate all winning lines of length `winLength` on an `n x n` board
+function generateWinLines(boardSize, winLength) {
+  const lines = []
+  const n = boardSize
 
-function checkWinner(squares) {
-  for (const [a, b, c] of WINNING_LINES) {
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a]
+  // Rows
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c <= n - winLength; c++) {
+      const line = []
+      for (let k = 0; k < winLength; k++) line.push(r * n + c + k)
+      lines.push(line)
     }
+  }
+
+  // Cols
+  for (let c = 0; c < n; c++) {
+    for (let r = 0; r <= n - winLength; r++) {
+      const line = []
+      for (let k = 0; k < winLength; k++) line.push((r + k) * n + c)
+      lines.push(line)
+    }
+  }
+
+  // Diagonals ↘
+  for (let r = 0; r <= n - winLength; r++) {
+    for (let c = 0; c <= n - winLength; c++) {
+      const line = []
+      for (let k = 0; k < winLength; k++) line.push((r + k) * n + (c + k))
+      lines.push(line)
+    }
+  }
+
+  // Diagonals ↙
+  for (let r = 0; r <= n - winLength; r++) {
+    for (let c = winLength - 1; c < n; c++) {
+      const line = []
+      for (let k = 0; k < winLength; k++) line.push((r + k) * n + (c - k))
+      lines.push(line)
+    }
+  }
+
+  return lines
+}
+
+function checkWinner(squares, winLines) {
+  for (const line of winLines) {
+    const first = squares[line[0]]
+    if (first && line.every(i => squares[i] === first)) return first
   }
   return null
 }
 
-function isDraw(squares) {
-  return squares.every(Boolean) && !checkWinner(squares)
+function isDraw(squares, winLines) {
+  return squares.every(Boolean) && !checkWinner(squares, winLines)
 }
 
-function minimax(squares, isMaximizing) {
-  const winner = checkWinner(squares)
+// Heuristic: count open threat lines of length winLength-1 for each player
+function evaluate(squares, winLines) {
+  let score = 0
+  for (const line of winLines) {
+    const pieces = line.map(i => squares[i])
+    const hasX = pieces.some(p => p === 'X')
+    const hasO = pieces.some(p => p === 'O')
+    if (hasO && !hasX) {
+      const count = pieces.filter(p => p === 'O').length
+      if (count === line.length - 1) score += 10
+    } else if (hasX && !hasO) {
+      const count = pieces.filter(p => p === 'X').length
+      if (count === line.length - 1) score -= 10
+    }
+  }
+  return score
+}
+
+// Full minimax — only used for 3×3
+function minimaxFull(squares, winLines, size, isMaximizing) {
+  const winner = checkWinner(squares, winLines)
   if (winner === 'O') return 10
   if (winner === 'X') return -10
   if (squares.every(Boolean)) return 0
 
   if (isMaximizing) {
     let best = -Infinity
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < size; i++) {
       if (!squares[i]) {
         squares[i] = 'O'
-        best = Math.max(best, minimax(squares, false))
+        best = Math.max(best, minimaxFull(squares, winLines, size, false))
         squares[i] = null
       }
     }
     return best
   } else {
     let best = Infinity
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < size; i++) {
       if (!squares[i]) {
         squares[i] = 'X'
-        best = Math.min(best, minimax(squares, true))
+        best = Math.min(best, minimaxFull(squares, winLines, size, true))
         squares[i] = null
       }
     }
@@ -48,30 +104,81 @@ function minimax(squares, isMaximizing) {
   }
 }
 
-function bestMove(squares) {
+// Alpha-beta minimax with depth limit and heuristic eval
+function minimaxAB(squares, winLines, size, isMaximizing, alpha, beta, depth, maxDepth) {
+  const winner = checkWinner(squares, winLines)
+  if (winner === 'O') return 100 + depth
+  if (winner === 'X') return -100 - depth
+  if (squares.every(Boolean)) return 0
+  if (depth >= maxDepth) return evaluate(squares, winLines)
+
+  if (isMaximizing) {
+    let best = -Infinity
+    for (let i = 0; i < size; i++) {
+      if (!squares[i]) {
+        squares[i] = 'O'
+        best = Math.max(best, minimaxAB(squares, winLines, size, false, alpha, beta, depth + 1, maxDepth))
+        squares[i] = null
+        alpha = Math.max(alpha, best)
+        if (beta <= alpha) break
+      }
+    }
+    return best
+  } else {
+    let best = Infinity
+    for (let i = 0; i < size; i++) {
+      if (!squares[i]) {
+        squares[i] = 'X'
+        best = Math.min(best, minimaxAB(squares, winLines, size, true, alpha, beta, depth + 1, maxDepth))
+        squares[i] = null
+        beta = Math.min(beta, best)
+        if (beta <= alpha) break
+      }
+    }
+    return best
+  }
+}
+
+function bestMove(squares, boardSize, winLength) {
+  const winLines = generateWinLines(boardSize, winLength)
+  const size = boardSize * boardSize
   let best = -Infinity
   let move = -1
-  for (let i = 0; i < 9; i++) {
-    if (!squares[i]) {
-      squares[i] = 'O'
-      const score = minimax(squares, false)
-      squares[i] = null
-      if (score > best) {
-        best = score
-        move = i
+
+  if (boardSize === 3) {
+    for (let i = 0; i < size; i++) {
+      if (!squares[i]) {
+        squares[i] = 'O'
+        const score = minimaxFull(squares, winLines, size, false)
+        squares[i] = null
+        if (score > best) { best = score; move = i }
+      }
+    }
+  } else {
+    const maxDepth = boardSize === 4 ? 6 : 4
+    for (let i = 0; i < size; i++) {
+      if (!squares[i]) {
+        squares[i] = 'O'
+        const score = minimaxAB(squares, winLines, size, false, -Infinity, Infinity, 0, maxDepth)
+        squares[i] = null
+        if (score > best) { best = score; move = i }
       }
     }
   }
+
   return move
 }
 
 export default function TicTacToe() {
+  const [boardSize, setBoardSize] = useState(3)
+  const [winLength, setWinLength] = useState(3)
   const [squares, setSquares] = useState(Array(9).fill(null))
   const [thinking, setThinking] = useState(false)
   const pendingRef = useRef(false)
 
-  const winner = checkWinner(squares)
-  const draw = isDraw(squares)
+  const winLines = generateWinLines(boardSize, winLength)
+  const winner = checkWinner(squares, winLines)
+  const draw = isDraw(squares, winLines)
   const gameOver = winner || draw
   const playerTurn = !gameOver && !thinking && squares.filter(Boolean).length % 2 === 0
 
@@ -82,7 +189,7 @@ export default function TicTacToe() {
       pendingRef.current = true
       setThinking(true)
       const timer = setTimeout(() => {
-        const move = bestMove([...squares])
+        const move = bestMove([...squares], boardSize, winLength)
         if (move !== -1) {
           const next = [...squares]
           next[move] = 'O'
@@ -105,9 +212,27 @@ export default function TicTacToe() {
     setSquares(next)
   }
 
+  function handleBoardSizeChange(e) {
+    const newSize = parseInt(e.target.value)
+    const newWin = Math.min(winLength, newSize)
+    setBoardSize(newSize)
+    setWinLength(newWin)
+    pendingRef.current = false
+    setSquares(Array(newSize * newSize).fill(null))
+    setThinking(false)
+  }
+
+  function handleWinLengthChange(e) {
+    const newWin = parseInt(e.target.value)
+    setWinLength(newWin)
+    pendingRef.current = false
+    setSquares(Array(boardSize * boardSize).fill(null))
+    setThinking(false)
+  }
+
   function reset() {
     pendingRef.current = false
-    setSquares(Array(9).fill(null))
+    setSquares(Array(boardSize * boardSize).fill(null))
     setThinking(false)
   }
 
@@ -117,6 +242,9 @@ export default function TicTacToe() {
   else if (draw) status = 'Draw 🤝'
   else if (thinking) status = 'Computer thinking...'
   else status = 'Your turn'
+
+  const cellSize = Math.max(32, 96 - (boardSize - 3) * 12)
+  const fontSize = Math.max(14, 36 - (boardSize - 3) * 5)
 
   return (
     <div className="min-h-screen bg-paper font-body">
@@ -134,19 +262,54 @@ export default function TicTacToe() {
       </header>
 
       <main className="max-w-xl mx-auto px-6 py-10 flex flex-col items-center gap-8">
+        {/* Settings */}
+        <div className="w-full bg-canvas rounded-xl p-4 border border-ink/10 flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-ink/70 w-24 shrink-0">Board size:</span>
+            <input
+              type="range"
+              min={2}
+              max={10}
+              value={boardSize}
+              onChange={handleBoardSizeChange}
+              className="flex-1 accent-accent"
+            />
+            <span className="text-sm font-medium text-ink w-16 text-right">{boardSize}×{boardSize}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-ink/70 w-24 shrink-0">Win length:</span>
+            <input
+              type="range"
+              min={2}
+              max={boardSize}
+              value={winLength}
+              onChange={handleWinLengthChange}
+              className="flex-1 accent-accent"
+            />
+            <span className="text-sm font-medium text-ink w-16 text-right">{winLength} in a row</span>
+          </div>
+        </div>
+
         {/* Status */}
         <div className="text-center">
           <p className="text-lg font-medium text-ink/70">{status}</p>
         </div>
 
         {/* Board */}
-        <div className="grid grid-cols-3 gap-2">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${boardSize}, 1fr)`,
+            gap: '8px',
+          }}
+        >
           {squares.map((sq, i) => (
             <button
               key={i}
               onClick={() => handleClick(i)}
+              style={{ width: cellSize, height: cellSize, fontSize }}
               className={[
-                'w-24 h-24 text-4xl font-bold rounded-lg border-2 transition-all duration-150',
+                'font-bold rounded-lg border-2 transition-all duration-150',
                 'flex items-center justify-center',
                 sq === 'X'
                   ? 'text-accent border-accent/40 bg-accent/5'
