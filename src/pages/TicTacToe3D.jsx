@@ -135,8 +135,8 @@ const GRID = CS * 3 + CG * 2  // total grid width/height
 
 // One 3D cube cell
 function RubikCell({ sq, isWin, isEmpty, onClick }) {
-  const front  = isWin ? '#22c55e' : sq === 'X' ? '#e63946' : sq === 'O' ? '#edeae3' : '#f8f6f1'
-  const side   = '#111827'
+  const front  = isWin ? '#86efac' : sq === 'X' ? '#fca5a5' : sq === 'O' ? '#e2e8f0' : 'rgba(255,255,255,0.7)'
+  const side   = 'rgba(26,26,46,0.18)'
   const h = CS / 2
   const faceStyle = (transform, bg, extra = {}) => ({
     position: 'absolute', width: CS, height: CS,
@@ -156,8 +156,10 @@ function RubikCell({ sq, isWin, isEmpty, onClick }) {
       <div style={faceStyle(`translateZ(${h}px)`, front, {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: CS * 0.38, fontWeight: 800,
-        color: sq === 'X' ? '#fff' : '#1a1a2e',
-        borderRadius: 3,
+        color: sq === 'X' ? '#e63946' : '#1a1a2e',
+        borderRadius: 4,
+        border: '1.5px solid rgba(26,26,46,0.12)',
+        boxSizing: 'border-box',
       })}>{sq}</div>
       {/* Back */}
       <div style={faceStyle(`rotateY(180deg) translateZ(${h}px)`, side, { borderRadius: 3 })} />
