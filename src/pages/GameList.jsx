@@ -13,6 +13,13 @@ const games = [
     emoji: '🧊',
     hash: '#/tictactoe3d',
   },
+  {
+    id: 'ginrummy',
+    name: 'Gin Rummy',
+    description: 'Classic card game. Draw, discard, form sets and runs. Knock when deadwood ≤ 10. First to 100 wins.',
+    emoji: '🃏',
+    hash: '#/ginrummy',
+  },
 ]
 
 export default function GameList() {
