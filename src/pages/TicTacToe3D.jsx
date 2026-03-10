@@ -127,10 +127,16 @@ function hardMove(squares) {
 }
 
 // ── Cube View ────────────────────────────────────────────────
+const CELL = 58   // px per cell
+const GAP = 6     // px gap between cells
+const GRID = CELL * 3 + GAP * 2  // 186px total grid
+const LAYER_GAP = 95  // z-distance between layers
+
 function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
-  const [rotX, setRotX] = useState(-20)
+  const [rotX, setRotX] = useState(-25)
   const [rotY, setRotY] = useState(30)
   const dragRef = useRef(null)
+  const isDragging = !!dragRef.current
 
   function onPointerDown(e) {
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -145,62 +151,86 @@ function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
   }
   function onPointerUp() { dragRef.current = null }
 
-  const LAYER_GAP = 100
-
   return (
     <div
-      style={{ perspective: '900px', width: 280, height: 280, margin: 'auto', cursor: dragRef.current ? 'grabbing' : 'grab' }}
+      style={{
+        perspective: '900px',
+        width: GRID + 80,
+        height: GRID + 80,
+        margin: 'auto',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
       <div style={{
-        width: '100%', height: '100%',
+        width: GRID,
+        height: GRID,
+        margin: 40,
+        position: 'relative',
         transformStyle: 'preserve-3d',
         transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)`,
-        transition: dragRef.current ? 'none' : 'transform 0.3s ease',
-        position: 'relative',
+        transition: isDragging ? 'none' : 'transform 0.3s ease',
       }}>
         {[0, 1, 2].map(layer => (
           <div key={layer} style={{
-            position: 'absolute', inset: 0,
+            position: 'absolute',
+            top: 0, left: 0,
+            width: GRID,
+            height: GRID,
             transformStyle: 'preserve-3d',
             transform: `translateZ(${(layer - 1) * LAYER_GAP}px)`,
           }}>
-            {/* Layer label */}
+            {/* Subtle layer background plane */}
             <div style={{
-              position: 'absolute', top: -22, left: 0, right: 0,
-              textAlign: 'center', fontSize: 11, color: 'rgba(26,26,46,0.4)',
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              transform: 'translateZ(1px)',
+              position: 'absolute', inset: -4,
+              background: `rgba(237,234,227,${0.06 + layer * 0.04})`,
+              border: '1px solid rgba(26,26,46,0.08)',
+              borderRadius: 10,
               pointerEvents: 'none',
-            }}>L{layer + 1}</div>
-            {/* Layer plane */}
+            }} />
+            {/* Cells */}
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 5, width: '100%', height: '100%',
-              background: 'rgba(237,234,227,0.08)',
-              borderRadius: 8, padding: 4,
+              display: 'grid',
+              gridTemplateColumns: `repeat(3, ${CELL}px)`,
+              gridTemplateRows: `repeat(3, ${CELL}px)`,
+              gap: GAP,
+              width: GRID,
+              height: GRID,
+              position: 'relative',
             }}>
               {Array.from({ length: 9 }, (_, i) => {
                 const sqIdx = layer * 9 + i
                 const sq = squares[sqIdx]
                 const isWin = winLine.has(sqIdx)
                 const isEmpty = !sq && playerTurn
+                const bg = isWin ? 'rgba(187,247,208,0.85)'
+                  : sq === 'X' ? 'rgba(254,226,226,0.75)'
+                  : sq === 'O' ? 'rgba(237,234,227,0.75)'
+                  : 'rgba(255,255,255,0.45)'
+                const border = isWin ? '2px solid #22c55e'
+                  : sq === 'X' ? '2px solid rgba(230,57,70,0.5)'
+                  : sq === 'O' ? '2px solid rgba(26,26,46,0.25)'
+                  : '2px solid rgba(26,26,46,0.12)'
+                const color = isWin ? '#15803d'
+                  : sq === 'X' ? '#e63946'
+                  : '#1a1a2e'
                 return (
                   <button
                     key={i}
                     onClick={() => onCellClick(sqIdx)}
-                    style={{ cursor: isEmpty ? 'pointer' : 'default' }}
-                    className={[
-                      'flex items-center justify-center rounded font-bold text-xl border transition-all',
-                      isWin ? 'border-green-400 bg-green-100/80 text-green-700'
-                        : sq === 'X' ? 'border-red-300 bg-red-50/60 text-accent'
-                        : sq === 'O' ? 'border-ink/30 bg-canvas/60 text-ink'
-                        : isEmpty ? 'border-white/30 bg-white/10 hover:bg-white/25 hover:border-white/60'
-                        : 'border-white/15 bg-white/5',
-                    ].join(' ')}
+                    style={{
+                      width: CELL, height: CELL,
+                      background: bg, border, color,
+                      borderRadius: 8,
+                      fontSize: 22, fontWeight: 700,
+                      cursor: isEmpty ? 'pointer' : 'default',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'background 0.15s',
+                    }}
                   >
                     {sq}
                   </button>
