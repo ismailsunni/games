@@ -126,81 +126,68 @@ function hardMove(squares) {
   return move
 }
 
-// ── Cube View — Rubik's style ─────────────────────────────────
-const CS = 50      // cube face size (px)
-const CG = 8       // gap between cubes
-const CD = CS      // cube depth = same as face = perfect cube
-const LAYER_Z = CS + CG  // z-step between layers
-const GRID = CS * 3 + CG * 2  // total grid width/height
+// ── Cube View — layered flat grids in 3D space ───────────────
+const CELL   = 56
+const GAP    = 7
+const GRID   = CELL * 3 + GAP * 2
+const LAYER_Z = 84
 
-// One 3D cube cell
-function RubikCell({ sq, isWin, isEmpty, onClick }) {
-  const front  = isWin ? '#86efac' : sq === 'X' ? '#fca5a5' : sq === 'O' ? '#e2e8f0' : 'rgba(255,255,255,0.7)'
-  const side   = 'rgba(26,26,46,0.18)'
-  const h = CS / 2
-  const faceStyle = (transform, bg, extra = {}) => ({
-    position: 'absolute', width: CS, height: CS,
-    background: bg, transform, ...extra,
-  })
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        width: CS, height: CS,
-        position: 'relative',
-        transformStyle: 'preserve-3d',
-        cursor: isEmpty ? 'pointer' : 'default',
-      }}
-    >
-      {/* Front */}
-      <div style={faceStyle(`translateZ(${h}px)`, front, {
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: CS * 0.38, fontWeight: 800,
-        color: sq === 'X' ? '#e63946' : '#1a1a2e',
-        borderRadius: 4,
-        border: '1.5px solid rgba(26,26,46,0.12)',
-        boxSizing: 'border-box',
-      })}>{sq}</div>
-      {/* Back */}
-      <div style={faceStyle(`rotateY(180deg) translateZ(${h}px)`, side, { borderRadius: 3 })} />
-      {/* Left */}
-      <div style={{ ...faceStyle('', side), width: CD, transformOrigin: 'left center', transform: `rotateY(-90deg) translateZ(0px)`, left: 0, borderRadius: 3 }} />
-      {/* Right */}
-      <div style={{ ...faceStyle('', side), width: CD, transformOrigin: 'right center', transform: `rotateY(90deg) translateZ(0px)`, right: 0, borderRadius: 3 }} />
-      {/* Top */}
-      <div style={{ ...faceStyle('', side), height: CD, transformOrigin: 'top center', transform: `rotateX(90deg) translateZ(0px)`, top: 0, borderRadius: 3 }} />
-      {/* Bottom */}
-      <div style={{ ...faceStyle('', side), height: CD, transformOrigin: 'bottom center', transform: `rotateX(-90deg) translateZ(0px)`, bottom: 0, borderRadius: 3 }} />
-    </div>
-  )
-}
+const LAYER_TINT = [
+  'rgba(230,57,70,0.07)',
+  'rgba(26,26,46,0.04)',
+  'rgba(59,130,246,0.07)',
+]
 
 function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
-  const [rotX, setRotX] = useState(-25)
-  const [rotY, setRotY] = useState(30)
+  const rotRef  = useRef({ x: -22, y: 28 })
+  const velRef  = useRef({ x: 0, y: 0 })
   const dragRef = useRef(null)
-  const isDragging = !!dragRef.current
+  const rafRef  = useRef(null)
+  const [rot, setRot] = useState({ x: -22, y: 28 })
 
   function onPointerDown(e) {
     e.currentTarget.setPointerCapture(e.pointerId)
-    dragRef.current = { x: e.clientX, y: e.clientY, rotX, rotY }
+    cancelAnimationFrame(rafRef.current)
+    velRef.current = { x: 0, y: 0 }
+    dragRef.current = { px: e.clientX, py: e.clientY }
   }
+
   function onPointerMove(e) {
     if (!dragRef.current) return
-    const dx = e.clientX - dragRef.current.x
-    const dy = e.clientY - dragRef.current.y
-    setRotY(dragRef.current.rotY + dx * 0.5)
-    setRotX(Math.max(-70, Math.min(70, dragRef.current.rotX - dy * 0.5)))
+    const dx = e.clientX - dragRef.current.px
+    const dy = e.clientY - dragRef.current.py
+    velRef.current = { x: dx * 0.5, y: dy * 0.4 }
+    rotRef.current = {
+      x: Math.max(-70, Math.min(60, rotRef.current.x - dy * 0.4)),
+      y: rotRef.current.y + dx * 0.5,
+    }
+    dragRef.current = { px: e.clientX, py: e.clientY }
+    setRot({ ...rotRef.current })
   }
-  function onPointerUp() { dragRef.current = null }
+
+  function onPointerUp() {
+    dragRef.current = null
+    let { x: vx, y: vy } = velRef.current
+    function coast() {
+      if (Math.abs(vx) < 0.05 && Math.abs(vy) < 0.05) return
+      rotRef.current = {
+        x: Math.max(-70, Math.min(60, rotRef.current.x - vy)),
+        y: rotRef.current.y + vx,
+      }
+      vx *= 0.90; vy *= 0.90
+      setRot({ ...rotRef.current })
+      rafRef.current = requestAnimationFrame(coast)
+    }
+    rafRef.current = requestAnimationFrame(coast)
+  }
 
   return (
     <div
       style={{
         perspective: '1000px',
-        width: GRID + 120, height: GRID + 120,
+        width: GRID + 140, height: GRID + 140,
         margin: 'auto',
-        cursor: isDragging ? 'grabbing' : 'grab',
+        cursor: dragRef.current ? 'grabbing' : 'grab',
         userSelect: 'none',
       }}
       onPointerDown={onPointerDown}
@@ -210,37 +197,56 @@ function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
     >
       <div style={{
         width: GRID, height: GRID,
-        margin: 60,
+        margin: 70,
         position: 'relative',
         transformStyle: 'preserve-3d',
-        transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)`,
-        transition: isDragging ? 'none' : 'transform 0.3s ease',
+        transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
       }}>
         {[0, 1, 2].map(layer => (
           <div key={layer} style={{
             position: 'absolute', top: 0, left: 0,
             width: GRID, height: GRID,
-            transformStyle: 'preserve-3d',
-            // centre layer at z=0, others offset by ±LAYER_Z
             transform: `translateZ(${(layer - 1) * LAYER_Z}px)`,
           }}>
+            {/* Layer tint */}
+            <div style={{
+              position: 'absolute', inset: -6,
+              background: LAYER_TINT[layer],
+              border: '1px solid rgba(26,26,46,0.08)',
+              borderRadius: 12, pointerEvents: 'none',
+            }} />
             <div style={{
               display: 'grid',
-              gridTemplateColumns: `repeat(3, ${CS}px)`,
-              gridTemplateRows: `repeat(3, ${CS}px)`,
-              gap: CG,
-              transformStyle: 'preserve-3d',
+              gridTemplateColumns: `repeat(3, ${CELL}px)`,
+              gridTemplateRows: `repeat(3, ${CELL}px)`,
+              gap: GAP, position: 'relative',
             }}>
               {Array.from({ length: 9 }, (_, i) => {
                 const sqIdx = layer * 9 + i
+                const sq = squares[sqIdx]
+                const isWin = winLine.has(sqIdx)
+                const isEmpty = !sq && playerTurn
                 return (
-                  <RubikCell
-                    key={i}
-                    sq={squares[sqIdx]}
-                    isWin={winLine.has(sqIdx)}
-                    isEmpty={!squares[sqIdx] && playerTurn}
-                    onClick={() => onCellClick(sqIdx)}
-                  />
+                  <button key={i} onClick={() => onCellClick(sqIdx)} style={{
+                    width: CELL, height: CELL,
+                    fontSize: 20, fontWeight: 800,
+                    cursor: isEmpty ? 'pointer' : 'default',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 8,
+                    border: isWin ? '2px solid #22c55e'
+                      : sq === 'X' ? '2px solid rgba(230,57,70,0.45)'
+                      : sq === 'O' ? '2px solid rgba(26,26,46,0.2)'
+                      : '2px solid rgba(26,26,46,0.1)',
+                    background: isWin ? 'rgba(187,247,208,0.92)'
+                      : sq === 'X' ? 'rgba(254,226,226,0.88)'
+                      : sq === 'O' ? 'rgba(226,232,240,0.88)'
+                      : 'rgba(255,255,255,0.78)',
+                    color: isWin ? '#15803d' : sq === 'X' ? '#e63946' : '#1a1a2e',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
+                    transition: 'background 0.12s',
+                  }}>
+                    {sq}
+                  </button>
                 )
               })}
             </div>
