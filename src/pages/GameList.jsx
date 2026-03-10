@@ -2,7 +2,7 @@ const games = [
   {
     id: 'tictactoe',
     name: 'Tic-Tac-Toe',
-    description: 'Classic 3×3 grid game. Configurable board size and win length. Easy / Medium / Hard AI.',
+    description: 'Configurable board size (2×2 to 10×10) and win length. Play against Easy, Medium, or Hard AI.',
     emoji: '⭕',
     hash: '#/tictactoe',
   },
