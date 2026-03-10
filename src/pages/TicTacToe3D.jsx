@@ -1,34 +1,28 @@
 import { useState, useEffect, useRef } from 'react'
 
-// Index: layer * 9 + row * 3 + col
 function idx(l, r, c) { return l * 9 + r * 3 + c }
 
 function generateWinLines() {
   const lines = []
-  // Within each layer: rows, cols, diagonals
   for (let l = 0; l < 3; l++) {
     for (let i = 0; i < 3; i++) {
-      lines.push([idx(l,i,0), idx(l,i,1), idx(l,i,2)]) // row
-      lines.push([idx(l,0,i), idx(l,1,i), idx(l,2,i)]) // col
+      lines.push([idx(l,i,0), idx(l,i,1), idx(l,i,2)])
+      lines.push([idx(l,0,i), idx(l,1,i), idx(l,2,i)])
     }
-    lines.push([idx(l,0,0), idx(l,1,1), idx(l,2,2)]) // diag
-    lines.push([idx(l,0,2), idx(l,1,1), idx(l,2,0)]) // anti-diag
+    lines.push([idx(l,0,0), idx(l,1,1), idx(l,2,2)])
+    lines.push([idx(l,0,2), idx(l,1,1), idx(l,2,0)])
   }
-  // Vertical pillars (same r,c across all layers)
   for (let r = 0; r < 3; r++)
     for (let c = 0; c < 3; c++)
       lines.push([idx(0,r,c), idx(1,r,c), idx(2,r,c)])
-  // Cross-layer diagonals: fix col, diag row+layer
   for (let c = 0; c < 3; c++) {
     lines.push([idx(0,0,c), idx(1,1,c), idx(2,2,c)])
     lines.push([idx(0,2,c), idx(1,1,c), idx(2,0,c)])
   }
-  // Cross-layer diagonals: fix row, diag col+layer
   for (let r = 0; r < 3; r++) {
     lines.push([idx(0,r,0), idx(1,r,1), idx(2,r,2)])
     lines.push([idx(0,r,2), idx(1,r,1), idx(2,r,0)])
   }
-  // Space diagonals (all 3 coords change)
   lines.push([idx(0,0,0), idx(1,1,1), idx(2,2,2)])
   lines.push([idx(0,0,2), idx(1,1,1), idx(2,2,0)])
   lines.push([idx(0,2,0), idx(1,1,1), idx(2,0,2)])
@@ -47,40 +41,37 @@ function checkWinner(squares) {
   return null
 }
 
-// Easy: random
 function easyMove(squares) {
   const empty = squares.map((v, i) => v ? null : i).filter(i => i !== null)
   return empty[Math.floor(Math.random() * empty.length)] ?? -1
 }
 
-// Medium: threat-aware heuristic
 function mediumMove(squares) {
-  const score = (sq, player) => {
-    let s = 0
-    for (const line of WIN_LINES) {
-      const vals = line.map(i => sq[i])
-      const opp = player === 'O' ? 'X' : 'O'
-      if (vals.includes(opp)) continue
-      s += vals.filter(v => v === player).length
-    }
-    return s
+  for (let i = 0; i < 27; i++) {
+    if (squares[i]) continue
+    const t = [...squares]; t[i] = 'O'
+    if (checkWinner(t)?.winner === 'O') return i
+  }
+  for (let i = 0; i < 27; i++) {
+    if (squares[i]) continue
+    const t = [...squares]; t[i] = 'X'
+    if (checkWinner(t)?.winner === 'X') return i
   }
   let best = -Infinity, move = -1
   for (let i = 0; i < 27; i++) {
     if (squares[i]) continue
-    const t = [...squares]
-    t[i] = 'O'
-    if (checkWinner(t)?.winner === 'O') return i
-    t[i] = 'X'
-    if (checkWinner(t)?.winner === 'X') { move = i; best = 9000; continue }
-    t[i] = 'O'
-    const s = score(t, 'O') - score(t, 'X') * 0.9
+    let s = 0
+    const t = [...squares]; t[i] = 'O'
+    for (const line of WIN_LINES) {
+      const vals = line.map(j => t[j])
+      if (!vals.includes('X')) s += vals.filter(v => v === 'O').length * 2
+      if (!vals.includes('O')) s -= vals.filter(v => v === 'X').length
+    }
     if (s > best) { best = s; move = i }
   }
   return move === -1 ? easyMove(squares) : move
 }
 
-// Hard: alpha-beta minimax, depth 5
 function minimaxAB(squares, isMax, alpha, beta, depth) {
   const result = checkWinner(squares)
   if (result?.winner === 'O') return 10 + depth
@@ -135,12 +126,135 @@ function hardMove(squares) {
   return move
 }
 
+// ── Cube View ────────────────────────────────────────────────
+function CubeBoard({ squares, winLine, playerTurn, onCellClick }) {
+  const [rotX, setRotX] = useState(-20)
+  const [rotY, setRotY] = useState(30)
+  const dragRef = useRef(null)
+
+  function onPointerDown(e) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = { x: e.clientX, y: e.clientY, rotX, rotY }
+  }
+  function onPointerMove(e) {
+    if (!dragRef.current) return
+    const dx = e.clientX - dragRef.current.x
+    const dy = e.clientY - dragRef.current.y
+    setRotY(dragRef.current.rotY + dx * 0.5)
+    setRotX(Math.max(-70, Math.min(70, dragRef.current.rotX - dy * 0.5)))
+  }
+  function onPointerUp() { dragRef.current = null }
+
+  const LAYER_GAP = 100
+
+  return (
+    <div
+      style={{ perspective: '900px', width: 280, height: 280, margin: 'auto', cursor: dragRef.current ? 'grabbing' : 'grab' }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
+    >
+      <div style={{
+        width: '100%', height: '100%',
+        transformStyle: 'preserve-3d',
+        transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)`,
+        transition: dragRef.current ? 'none' : 'transform 0.3s ease',
+        position: 'relative',
+      }}>
+        {[0, 1, 2].map(layer => (
+          <div key={layer} style={{
+            position: 'absolute', inset: 0,
+            transformStyle: 'preserve-3d',
+            transform: `translateZ(${(layer - 1) * LAYER_GAP}px)`,
+          }}>
+            {/* Layer label */}
+            <div style={{
+              position: 'absolute', top: -22, left: 0, right: 0,
+              textAlign: 'center', fontSize: 11, color: 'rgba(26,26,46,0.4)',
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              transform: 'translateZ(1px)',
+              pointerEvents: 'none',
+            }}>L{layer + 1}</div>
+            {/* Layer plane */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 5, width: '100%', height: '100%',
+              background: 'rgba(237,234,227,0.08)',
+              borderRadius: 8, padding: 4,
+            }}>
+              {Array.from({ length: 9 }, (_, i) => {
+                const sqIdx = layer * 9 + i
+                const sq = squares[sqIdx]
+                const isWin = winLine.has(sqIdx)
+                const isEmpty = !sq && playerTurn
+                return (
+                  <button
+                    key={i}
+                    onClick={() => onCellClick(sqIdx)}
+                    style={{ cursor: isEmpty ? 'pointer' : 'default' }}
+                    className={[
+                      'flex items-center justify-center rounded font-bold text-xl border transition-all',
+                      isWin ? 'border-green-400 bg-green-100/80 text-green-700'
+                        : sq === 'X' ? 'border-red-300 bg-red-50/60 text-accent'
+                        : sq === 'O' ? 'border-ink/30 bg-canvas/60 text-ink'
+                        : isEmpty ? 'border-white/30 bg-white/10 hover:bg-white/25 hover:border-white/60'
+                        : 'border-white/15 bg-white/5',
+                    ].join(' ')}
+                  >
+                    {sq}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Layer View ───────────────────────────────────────────────
+function LayerBoard({ squares, winLine, playerTurn, onCellClick }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-8">
+      {[0, 1, 2].map(layer => (
+        <div key={layer} className="flex flex-col items-center gap-2">
+          <span className="text-xs font-medium text-ink/50 uppercase tracking-wider">Layer {layer + 1}</span>
+          <div className="grid grid-cols-3 gap-1.5">
+            {Array.from({ length: 9 }, (_, i) => {
+              const sqIdx = layer * 9 + i
+              const sq = squares[sqIdx]
+              const isWin = winLine.has(sqIdx)
+              return (
+                <button key={i} onClick={() => onCellClick(sqIdx)}
+                  className={[
+                    'w-16 h-16 text-2xl font-bold rounded-lg border-2 transition-all duration-150 flex items-center justify-center',
+                    isWin ? 'border-green-500 bg-green-50 text-green-700'
+                      : sq === 'X' ? 'text-accent border-accent/40 bg-accent/5'
+                      : sq === 'O' ? 'text-ink border-ink/30 bg-canvas'
+                      : playerTurn ? 'border-ink/20 bg-white hover:bg-canvas hover:border-ink/40 cursor-pointer'
+                      : 'border-ink/10 bg-white cursor-default',
+                  ].join(' ')}>
+                  {sq}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard']
 
 export default function TicTacToe3D() {
   const [squares, setSquares] = useState(Array(27).fill(null))
   const [difficulty, setDifficulty] = useState('Hard')
   const [thinking, setThinking] = useState(false)
+  const [viewMode, setViewMode] = useState('layer')
   const pendingRef = useRef(false)
 
   const result = checkWinner(squares)
@@ -162,8 +276,7 @@ export default function TicTacToe3D() {
         else if (difficulty === 'Medium') move = mediumMove(copy)
         else move = hardMove(copy)
         if (move !== -1) {
-          const next = [...squares]
-          next[move] = 'O'
+          const next = [...squares]; next[move] = 'O'
           setSquares(next)
         }
         pendingRef.current = false
@@ -175,8 +288,7 @@ export default function TicTacToe3D() {
 
   function handleClick(i) {
     if (!playerTurn || squares[i]) return
-    const next = [...squares]
-    next[i] = 'X'
+    const next = [...squares]; next[i] = 'X'
     setSquares(next)
   }
 
@@ -187,10 +299,8 @@ export default function TicTacToe3D() {
   }
 
   function handleDifficulty(d) {
-    setDifficulty(d)
-    pendingRef.current = false
-    setSquares(Array(27).fill(null))
-    setThinking(false)
+    setDifficulty(d); pendingRef.current = false
+    setSquares(Array(27).fill(null)); setThinking(false)
   }
 
   let status
@@ -210,9 +320,19 @@ export default function TicTacToe3D() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-10 flex flex-col items-center gap-8">
-        {/* Difficulty */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-ink/70">Difficulty:</span>
+        {/* Controls row */}
+        <div className="flex flex-wrap justify-center gap-4">
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-ink/20 overflow-hidden">
+            {[['layer', '☰ Layers'], ['cube', '⬡ Cube']].map(([v, label]) => (
+              <button key={v} onClick={() => setViewMode(v)}
+                className={['px-4 py-1.5 text-sm font-medium transition-colors',
+                  viewMode === v ? 'bg-ink text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Difficulty */}
           <div className="flex rounded-lg border border-ink/20 overflow-hidden">
             {DIFFICULTIES.map(d => (
               <button key={d} onClick={() => handleDifficulty(d)}
@@ -227,35 +347,15 @@ export default function TicTacToe3D() {
         {/* Status */}
         <p className="text-lg font-medium text-ink/70">{status}</p>
 
-        {/* 3 layers */}
-        <div className="flex flex-wrap justify-center gap-8">
-          {[0, 1, 2].map(layer => (
-            <div key={layer} className="flex flex-col items-center gap-2">
-              <span className="text-xs font-medium text-ink/50 uppercase tracking-wider">Layer {layer + 1}</span>
-              <div className="grid grid-cols-3 gap-1.5">
-                {Array.from({ length: 9 }, (_, i) => {
-                  const sqIdx = layer * 9 + i
-                  const sq = squares[sqIdx]
-                  const isWin = winLine.has(sqIdx)
-                  return (
-                    <button key={i} onClick={() => handleClick(sqIdx)}
-                      className={['w-16 h-16 text-2xl font-bold rounded-lg border-2 transition-all duration-150 flex items-center justify-center',
-                        isWin ? 'border-green-500 bg-green-50'
-                          : sq === 'X' ? 'text-accent border-accent/40 bg-accent/5'
-                          : sq === 'O' ? 'text-ink border-ink/30 bg-canvas'
-                          : playerTurn ? 'border-ink/20 bg-white hover:bg-canvas hover:border-ink/40 cursor-pointer'
-                          : 'border-ink/10 bg-white cursor-default',
-                        isWin && sq === 'X' ? 'text-accent' : '',
-                        isWin && sq === 'O' ? 'text-ink' : '',
-                      ].join(' ')}>
-                      {sq}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Board */}
+        {viewMode === 'cube' ? (
+          <div className="w-full flex flex-col items-center">
+            <CubeBoard squares={squares} winLine={winLine} playerTurn={playerTurn} onCellClick={handleClick} />
+            <p className="mt-4 text-xs text-ink/30">Drag to rotate</p>
+          </div>
+        ) : (
+          <LayerBoard squares={squares} winLine={winLine} playerTurn={playerTurn} onCellClick={handleClick} />
+        )}
 
         {gameOver && (
           <button onClick={reset} className="px-8 py-3 bg-ink text-paper font-medium rounded-lg hover:bg-ink/80 transition-colors">
@@ -267,9 +367,8 @@ export default function TicTacToe3D() {
           <span><span className="text-accent font-bold">X</span> — You</span>
           <span><span className="font-bold">O</span> — Computer</span>
         </div>
-
         <p className="text-xs text-ink/30 text-center max-w-sm">
-          Get 3 in a row within a layer, across layers (pillars), or diagonally through all 3 layers. 49 winning lines total.
+          49 winning lines — rows, columns, pillars, and diagonals across all 3 layers.
         </p>
       </main>
     </div>
