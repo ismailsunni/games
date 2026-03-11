@@ -134,7 +134,26 @@ export default function TicTacToe() {
 
   function handleComputerFirst(val) {
     setComputerFirst(val)
-    // board is already empty when this is called — no reset needed
+    if (!val) return
+    // Directly trigger AI move on the empty board — can't rely on effect
+    // since only computerFirst changes (squares doesn't)
+    if (pendingRef.current) return
+    pendingRef.current = true
+    setThinking(true)
+    const emptyBoard = Array(boardSize * boardSize).fill(null)
+    setTimeout(() => {
+      let move = -1
+      if (difficulty === 'Easy') move = easyMove([...emptyBoard], boardSize)
+      else if (difficulty === 'Medium') move = mediumMove([...emptyBoard], boardSize, winLength)
+      else move = hardMove([...emptyBoard], boardSize, winLength)
+      if (move !== -1) {
+        const next = [...emptyBoard]
+        next[move] = 'X' // computer plays X when going first
+        setSquares(next)
+      }
+      pendingRef.current = false
+      setThinking(false)
+    }, 100)
   }
 
   function handleGiveUp() {
@@ -238,7 +257,7 @@ export default function TicTacToe() {
               className="px-8 py-3 bg-ink text-paper font-medium rounded-lg hover:bg-ink/80 transition-colors">
               Play again
             </button>
-          ) : (
+          ) : moveCount > 0 && (
             <button onClick={handleGiveUp}
               className="px-6 py-2.5 border-2 border-ink/20 text-ink/50 font-medium rounded-lg hover:border-accent hover:text-accent transition-colors text-sm">
               🏳️ Give up
