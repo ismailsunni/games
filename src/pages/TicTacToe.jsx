@@ -134,7 +134,7 @@ export default function TicTacToe() {
 
   function handleComputerFirst(val) {
     setComputerFirst(val)
-    reset()
+    // board is already empty when this is called — no reset needed
   }
 
   function handleGiveUp() {
@@ -160,6 +160,7 @@ export default function TicTacToe() {
 
   function handleReset() {
     setGaveUp(false)
+    setComputerFirst(false)
     reset()
   }
 
@@ -197,22 +198,21 @@ export default function TicTacToe() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-ink/70 w-24 shrink-0">Goes first:</span>
-            <div className="flex rounded-lg border border-ink/20 overflow-hidden">
-              {[['You', false], ['Computer', true]].map(([label, val]) => (
-                <button key={label} onClick={() => handleComputerFirst(val)}
-                  className={['px-4 py-1.5 text-sm font-medium transition-colors',
-                    computerFirst === val ? 'bg-ink text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+
         </div>
 
         {/* Status */}
         <p className="text-lg font-medium text-ink/70">{status}</p>
+
+        {/* Let AI go first — only on empty board */}
+        {moveCount === 0 && !thinking && !effectiveGameOver && (
+          <button
+            onClick={() => handleComputerFirst(true)}
+            className="text-sm text-ink/50 border border-ink/20 rounded-lg px-5 py-2 hover:border-accent hover:text-accent transition-colors"
+          >
+            🤖 Let AI go first
+          </button>
+        )}
 
         {/* Board */}
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${boardSize}, 1fr)`, gap: '8px' }}>
