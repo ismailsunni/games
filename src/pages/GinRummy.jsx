@@ -236,18 +236,20 @@ export default function GinRummy() {
   const [roundResult, setRoundResult] = useState(() => _save?.roundResult ?? null)
   const [showHelp, setShowHelp] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [showConfig, setShowConfig] = useState(false)
   const [stats, setStats] = useState(() => loadStats())
-  const [showSetup, setShowSetup] = useState(() => _save ? false : true)
+  // 'home' = landing page, 'playing' = in-game
+  const [screen, setScreen] = useState(() => _save ? 'playing' : 'home')
   const [difficulty, setDifficulty] = useState(() => _save?.difficulty ?? 'medium')
   const [targetScore, setTargetScore] = useState(() => _save?.targetScore ?? 100)
 
   // Persist game state to localStorage on every meaningful change
   useEffect(() => {
-    if (showSetup) return  // don't save while setup modal is open
+    if (screen !== 'playing') return  // don't save while not in game
     localStorage.setItem(LS_KEY, JSON.stringify({
       game, phase, message, roundResult, difficulty, targetScore
     }))
-  }, [game, phase, message, roundResult, difficulty, targetScore, showSetup])
+  }, [game, phase, message, roundResult, difficulty, targetScore, screen])
 
   const { playerHand, computerHand, stock, discard, scores } = game
   const { melds: playerMelds, deadwood: playerDeadwood, deadwoodValue: playerDW } = bestMelds(playerHand)
@@ -431,7 +433,7 @@ export default function GinRummy() {
       })
       const newGame = dealGame()
       setGame(() => ({ ...newGame, scores: { player: 0, computer: 0 } }))
-      setShowSetup(true)
+      setScreen('home')
     } else {
       const newGame = dealGame()
       setGame(() => ({ ...newGame, scores: game.scores }))
@@ -466,7 +468,7 @@ export default function GinRummy() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium">← Back</a>
-            <h1 className="font-display text-xl font-bold text-ink">Gin Rummy{!showSetup && <span className="text-ink/40 font-normal text-base"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}</h1>
+            <h1 className="font-display text-xl font-bold text-ink">Gin Rummy{screen === 'playing' && <span className="text-ink/40 font-normal text-base"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}</h1>
           </div>
           <div className="text-sm font-medium text-ink/70">
             You <span className="text-accent font-bold">{scores.player}</span>
@@ -645,8 +647,8 @@ export default function GinRummy() {
         </div>
       </main>
 
-      {/* Fixed bottom-right buttons */}
-      <div className="fixed bottom-5 right-5 flex flex-col gap-2 z-40">
+      {/* Fixed bottom-right buttons — only during gameplay */}
+      <div className={`fixed bottom-5 right-5 flex flex-col gap-2 z-40 ${screen !== 'playing' ? 'hidden' : ''}`}>
         <button
           onClick={() => setShowStats(true)}
           className="w-9 h-9 rounded-full bg-ink text-paper text-sm font-bold shadow-lg hover:bg-ink/80 transition-colors"
@@ -710,11 +712,66 @@ export default function GinRummy() {
         </div>
       )}
 
-      {/* Setup modal */}
-      {showSetup && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-paper rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-ink mb-1">Gin Rummy</h2>
+      {/* Home screen */}
+      {screen === 'home' && (
+        <div className="fixed inset-0 bg-canvas z-40 flex flex-col items-center justify-center p-8">
+          <div className="text-5xl mb-4">🃏</div>
+          <h2 className="text-3xl font-bold text-ink mb-1">Gin Rummy</h2>
+          <p className="text-ink/40 text-sm mb-8">Classic card game vs computer</p>
+
+          {/* Quick stats if any games played */}
+          {(stats.gamesWon + stats.gamesLost) > 0 && (
+            <div className="flex gap-6 mb-8 text-center">
+              <div>
+                <div className="text-xl font-bold text-green-600">{stats.gamesWon}</div>
+                <div className="text-xs text-ink/40">Won</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-red-500">{stats.gamesLost}</div>
+                <div className="text-xs text-ink/40">Lost</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-ink">
+                  {Math.round(100 * stats.gamesWon / (stats.gamesWon + stats.gamesLost))}%
+                </div>
+                <div className="text-xs text-ink/40">Win rate</div>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowConfig(true)}
+            className="w-full max-w-xs py-4 bg-ink text-paper text-lg font-semibold rounded-2xl hover:bg-ink/80 transition-colors shadow-lg mb-4"
+          >
+            Play →
+          </button>
+
+          {/* Resume button if save exists */}
+          {_save && (
+            <button
+              onClick={() => setScreen('playing')}
+              className="w-full max-w-xs py-3 bg-ink/10 text-ink text-sm font-medium rounded-xl hover:bg-ink/20 transition-colors mb-4"
+            >
+              ↩ Resume saved game
+            </button>
+          )}
+
+          <div className="flex gap-3 mt-2">
+            <button onClick={() => setShowStats(true)}
+              className="w-10 h-10 rounded-full bg-ink/10 text-lg hover:bg-ink/20 transition-colors"
+              title="Stats">📊</button>
+            <button onClick={() => setShowHelp(true)}
+              className="w-10 h-10 rounded-full bg-ink/10 text-ink font-bold hover:bg-ink/20 transition-colors"
+              title="How to play">?</button>
+          </div>
+        </div>
+      )}
+
+      {/* Config modal — shown after Play is tapped on home screen */}
+      {showConfig && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowConfig(false)}>
+          <div className="bg-paper rounded-2xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-ink mb-1">New Game</h2>
             <p className="text-sm text-ink/50 mb-5">Set up your game</p>
 
             <div className="mb-5">
@@ -741,7 +798,16 @@ export default function GinRummy() {
               </div>
             </div>
 
-            <button onClick={() => { clearSave(); setShowSetup(false); setGame(dealGame()); setPhase("draw"); setSelected(null); setRoundResult(null); setMessage("Draw a card to start!"); }}
+            <button onClick={() => {
+              clearSave()
+              setShowConfig(false)
+              setScreen('playing')
+              setGame(dealGame())
+              setPhase('draw')
+              setSelected(null)
+              setRoundResult(null)
+              setMessage('Draw a card to start!')
+            }}
               className="w-full py-3 bg-ink text-paper font-semibold rounded-xl hover:bg-ink/80 transition-colors">
               Play →
             </button>
