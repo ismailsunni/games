@@ -164,7 +164,7 @@ const MELD_COLORS = [
 ]
 
 // ── Card component ────────────────────────────────────────────
-function Card({ card, faceDown, selected, meldColor, newCard, onClick, small }) {
+function Card({ card, faceDown, selected, meldColor, newCard, discarding, onClick, small }) {
   const sz = small ? { w: 44, h: 62, fs: 11 } : { w: 58, h: 82, fs: 14 }
   if (faceDown) return (
     <div onClick={onClick} style={{
@@ -177,13 +177,17 @@ function Card({ card, faceDown, selected, meldColor, newCard, onClick, small }) 
   const bg = selected ? '#fef9c3' : newCard ? '#fff7ed' : meldColor ? meldColor.bg : 'white'
   const borderCol = selected ? '#f59e0b' : newCard ? '#d97706' : meldColor ? meldColor.border : '#d4d0c8'
   const shadow = selected ? '0 0 0 3px #f59e0b50' : newCard ? '0 0 6px 2px #d9770660' : meldColor ? `0 0 6px 2px ${meldColor.shadow}` : '0 1px 3px rgba(0,0,0,0.1)'
+  const liftY = selected ? -8 : 0
   return (
     <div onClick={onClick} style={{
       width: sz.w, height: sz.h, borderRadius: 6, flexShrink: 0,
       background: bg, border: `2px solid ${borderCol}`,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       padding: '3px 4px', cursor: onClick ? 'pointer' : 'default',
-      boxShadow: shadow, transition: 'all 0.1s',
+      boxShadow: shadow,
+      transform: `translateY(${liftY}px)`,
+      transition: 'transform 0.15s ease, box-shadow 0.15s ease, background 0.1s',
+      animation: discarding ? 'discardOut 0.18s ease-in both' : newCard ? 'dealIn 0.22s ease-out both' : undefined,
     }}>
       <div style={{ fontSize: sz.fs, fontWeight: 700, color: red ? '#e63946' : '#1a1a2e', lineHeight: 1 }}>
         {card.rank}<br/>{card.suit}
@@ -231,7 +235,8 @@ export default function GinRummy() {
   const [game, setGame] = useState(() => _save?.game ?? dealGame())
   const [selected, setSelected] = useState(null)       // card id selected for discard — don't persist
   const [phase, setPhase] = useState(() => _save?.phase ?? 'draw')
-  const [drawnCardId, setDrawnCardId] = useState(null) // visual only — don't persist
+  const [drawnCardId, setDrawnCardId] = useState(null)   // visual only — don't persist
+  const [discardingId, setDiscardingId] = useState(null) // card mid-discard-animation
   const [message, setMessage] = useState(() => _save?.message ?? 'Draw a card to start!')
   const [roundResult, setRoundResult] = useState(() => _save?.roundResult ?? null)
   const [showHelp, setShowHelp] = useState(false)
@@ -289,14 +294,19 @@ export default function GinRummy() {
   function doDiscard() {
     if (!selected || phase !== 'discard') return
     const card = playerHand.find(c => c.id === selected)
-    const newHand = playerHand.filter(c => c.id !== selected)
-    const newDiscard = [...discard, card]
-    setSelected(null)
-    setDrawnCardId(null)
-    setGame(g => ({ ...g, playerHand: newHand, discard: newDiscard }))
-    setPhase('computer')
-    setMessage('Computer is thinking...')
-    setTimeout(() => doComputerTurn(newHand, newDiscard, game.stock), 800)
+    // Brief animation before removing
+    setDiscardingId(selected)
+    setTimeout(() => {
+      const newHand = playerHand.filter(c => c.id !== selected)
+      const newDiscard = [...discard, card]
+      setDiscardingId(null)
+      setSelected(null)
+      setDrawnCardId(null)
+      setGame(g => ({ ...g, playerHand: newHand, discard: newDiscard }))
+      setPhase('computer')
+      setMessage('Computer is thinking...')
+      setTimeout(() => doComputerTurn(newHand, newDiscard, game.stock), 800)
+    }, 200)
   }
 
   function doKnock() {
@@ -500,7 +510,7 @@ export default function GinRummy() {
           <div className="flex flex-col items-center gap-1">
             <div className="text-xs text-ink/40 uppercase tracking-wider">Discard</div>
             {discard.length > 0
-              ? <Card card={discard.at(-1)} onClick={phase === 'draw' ? () => drawCard('discard') : undefined} />
+              ? <Card key={discard.at(-1).id} card={discard.at(-1)} onClick={phase === 'draw' ? () => drawCard('discard') : undefined} newCard={true} />
               : <div className="w-14 h-20 rounded-lg border-2 border-dashed border-ink/20" />
             }
           </div>
@@ -542,6 +552,7 @@ export default function GinRummy() {
                                 selected={selected === card.id}
                                 meldColor={selected === card.id ? null : (cardMeldColor[card.id] || null)}
                                 newCard={drawnCardId === card.id}
+                                discarding={discardingId === card.id}
                                 onClick={() => selectCard(card.id)}
                                 small
                               />
@@ -597,7 +608,7 @@ export default function GinRummy() {
 
         {/* Round result */}
         {phase === 'result' && roundResult && (
-          <div className="bg-canvas rounded-xl p-4 border border-ink/10">
+          <div className="bg-canvas rounded-xl p-4 border border-ink/10 animate-slide-up">
             <p className="font-medium text-ink mb-3">{roundResult.msg}</p>
             <p className="text-sm text-ink/60 mb-2">
               Score: You {scores.player} · Computer {scores.computer}
