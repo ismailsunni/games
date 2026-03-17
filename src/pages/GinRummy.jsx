@@ -1,4 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+
+const LS_KEY = 'gin-rummy-save'
+function loadSave() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) } catch { return null }
+}
+function clearSave() { localStorage.removeItem(LS_KEY) }
 
 // ── Deck helpers ──────────────────────────────────────────────
 const SUITS = ['♠', '♣', '♥', '♦']
@@ -215,16 +221,25 @@ function HandSummary({ hand }) {
 
 // ── Main component ────────────────────────────────────────────
 export default function GinRummy() {
-  const [game, setGame] = useState(() => dealGame())
-  const [selected, setSelected] = useState(null)       // card id selected for discard
-  const [phase, setPhase] = useState('draw')            // draw | discard | computer | result
-  const [drawnCardId, setDrawnCardId] = useState(null) // highlights the just-drawn card
-  const [message, setMessage] = useState('Draw a card to start!')
-  const [roundResult, setRoundResult] = useState(null)
+  const _save = loadSave()
+  const [game, setGame] = useState(() => _save?.game ?? dealGame())
+  const [selected, setSelected] = useState(null)       // card id selected for discard — don't persist
+  const [phase, setPhase] = useState(() => _save?.phase ?? 'draw')
+  const [drawnCardId, setDrawnCardId] = useState(null) // visual only — don't persist
+  const [message, setMessage] = useState(() => _save?.message ?? 'Draw a card to start!')
+  const [roundResult, setRoundResult] = useState(() => _save?.roundResult ?? null)
   const [showHelp, setShowHelp] = useState(false)
-  const [showSetup, setShowSetup] = useState(true)
-  const [difficulty, setDifficulty] = useState("medium")
-  const [targetScore, setTargetScore] = useState(100)
+  const [showSetup, setShowSetup] = useState(() => _save ? false : true)
+  const [difficulty, setDifficulty] = useState(() => _save?.difficulty ?? 'medium')
+  const [targetScore, setTargetScore] = useState(() => _save?.targetScore ?? 100)
+
+  // Persist game state to localStorage on every meaningful change
+  useEffect(() => {
+    if (showSetup) return  // don't save while setup modal is open
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      game, phase, message, roundResult, difficulty, targetScore
+    }))
+  }, [game, phase, message, roundResult, difficulty, targetScore, showSetup])
 
   const { playerHand, computerHand, stock, discard, scores } = game
   const { melds: playerMelds, deadwood: playerDeadwood, deadwoodValue: playerDW } = bestMelds(playerHand)
@@ -619,7 +634,7 @@ export default function GinRummy() {
               </div>
             </div>
 
-            <button onClick={() => { setShowSetup(false); setGame(dealGame()); setPhase("draw"); setSelected(null); setRoundResult(null); setMessage("Draw a card to start!"); }}
+            <button onClick={() => { clearSave(); setShowSetup(false); setGame(dealGame()); setPhase("draw"); setSelected(null); setRoundResult(null); setMessage("Draw a card to start!"); }}
               className="w-full py-3 bg-ink text-paper font-semibold rounded-xl hover:bg-ink/80 transition-colors">
               Play →
             </button>
