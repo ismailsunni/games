@@ -340,13 +340,16 @@ export default function GinRummy() {
             {playerHand.length === 11 && <span className="text-accent ml-2">← tap a card to select for discard</span>}
           </div>
           <div className="flex flex-wrap gap-3 items-end">
-            {/* Meld clusters — tightly overlapping */}
+            {/* Meld clusters — diagonal fan (shift right + down per card) */}
             {playerMelds.map((meld, mi) => {
-              const w = 22 * (meld.length - 1) + 44
+              const DX = 20  // horizontal step
+              const DY = 10  // vertical step (diagonal)
+              const w = DX * (meld.length - 1) + 44
+              const h = DY * (meld.length - 1) + 62
               return (
-                <div key={mi} style={{ position: 'relative', width: w, height: 62, flexShrink: 0 }}>
+                <div key={mi} style={{ position: 'relative', width: w, height: h, flexShrink: 0 }}>
                   {meld.map((card, ci) => (
-                    <div key={card.id} style={{ position: 'absolute', left: ci * 22, zIndex: ci + 1 }}>
+                    <div key={card.id} style={{ position: 'absolute', left: ci * DX, top: ci * DY, zIndex: ci + 1 }}>
                       <Card
                         card={card}
                         meld={selected !== card.id}
