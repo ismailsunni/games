@@ -255,15 +255,32 @@ export default function GinRummy() {
     const { deadwoodValue: pDW } = bestMelds(pHand)
     const { deadwoodValue: cDW } = bestMelds(cHand)
 
+    // Scoring: winner gets (loser deadwood − winner deadwood)
     let delta = 0, msg = ''
     if (compKnocked) {
-      if (pDW <= cDW) { delta = 10 + (cDW - pDW); msg = `Undercut! You score ${delta} pts.`; sc = { ...sc, player: sc.player + delta } }
-      else { delta = cDW - pDW; msg = `Computer knocked (${cDW} DW). Computer scores ${delta} pts.`; sc = { ...sc, computer: sc.computer + delta } }
-    } else if (isGin || pDW === 0) {
-      delta = 25 + cDW; msg = `Gin! You score ${delta} pts (25 bonus + ${cDW}).`; sc = { ...sc, player: sc.player + delta }
+      if (pDW <= cDW) {
+        delta = cDW - pDW
+        msg = `Undercut! You score ${delta} pts (${cDW} − ${pDW}).`
+        sc = { ...sc, player: sc.player + delta }
+      } else {
+        delta = pDW - cDW
+        msg = `Computer knocked. Computer scores ${delta} pts (${pDW} − ${cDW}).`
+        sc = { ...sc, computer: sc.computer + delta }
+      }
+    } else if (pDW === 0) {
+      delta = cDW
+      msg = `Gin! You score ${delta} pts.`
+      sc = { ...sc, player: sc.player + delta }
     } else {
-      if (cDW <= pDW) { delta = 10 + (pDW - cDW); msg = `Undercut! Computer scores ${delta} pts.`; sc = { ...sc, computer: sc.computer + delta } }
-      else { delta = cDW - pDW; msg = `You knocked (${pDW} DW). You score ${delta} pts.`; sc = { ...sc, player: sc.player + delta } }
+      if (cDW <= pDW) {
+        delta = pDW - cDW
+        msg = `Undercut! Computer scores ${delta} pts (${pDW} − ${cDW}).`
+        sc = { ...sc, computer: sc.computer + delta }
+      } else {
+        delta = cDW - pDW
+        msg = `You knocked. You score ${delta} pts (${cDW} − ${pDW}).`
+        sc = { ...sc, player: sc.player + delta }
+      }
     }
 
     setRoundResult({ msg, playerHand: pHand, computerHand: cHand, pDW, cDW })
@@ -272,8 +289,10 @@ export default function GinRummy() {
     setMessage(msg)
   }
 
+  const WIN_SCORE = 50
+
   function nextRound() {
-    if (game.scores.player >= 100 || game.scores.computer >= 100) {
+    if (game.scores.player >= WIN_SCORE || game.scores.computer >= WIN_SCORE) {
       const newGame = dealGame()
       setGame(g => ({ ...newGame, scores: { player: 0, computer: 0 } }))
     } else {
@@ -430,9 +449,9 @@ export default function GinRummy() {
             <p className="font-medium text-ink mb-3">{roundResult.msg}</p>
             <p className="text-sm text-ink/60 mb-4">
               Score: You {scores.player} · Computer {scores.computer}
-              {(scores.player >= 100 || scores.computer >= 100) && (
+              {(scores.player >= WIN_SCORE || scores.computer >= WIN_SCORE) && (
                 <span className="ml-2 font-bold text-accent">
-                  {scores.player >= 100 ? '🎉 You win the game!' : '😔 Computer wins the game!'}
+                  {scores.player >= WIN_SCORE ? '🎉 You win the game!' : '😔 Computer wins the game!'}
                 </span>
               )}
             </p>
@@ -440,7 +459,7 @@ export default function GinRummy() {
               onClick={nextRound}
               className="px-6 py-2 bg-ink text-paper font-medium rounded-lg hover:bg-ink/80 transition-colors"
             >
-              {scores.player >= 100 || scores.computer >= 100 ? 'New Game' : 'Next Round'}
+              {scores.player >= WIN_SCORE || scores.computer >= WIN_SCORE ? 'New Game' : 'Next Round'}
             </button>
           </div>
         )}
