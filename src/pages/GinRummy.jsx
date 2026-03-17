@@ -90,24 +90,45 @@ function bestMelds(hand) {
 }
 
 // ── Computer AI ───────────────────────────────────────────────
-function computerDraw(hand, discardTop) {
-  // Take discard if it reduces deadwood
-  if (discardTop) {
-    const withDiscard = [...hand, discardTop]
-    const { deadwoodValue: dw1 } = bestMelds(withDiscard)
-    const { deadwoodValue: dw2 } = bestMelds(hand)
-    if (dw1 < dw2) return 'discard'
-  }
-  return 'stock'
+function computerDraw(hand, discardTop, difficulty) {
+  if (!discardTop) return "stock"
+  const withDiscard = [...hand, discardTop]
+  const dw1 = bestMelds(withDiscard).deadwoodValue
+  const dw2 = bestMelds(hand).deadwoodValue
+  const improvement = dw2 - dw1
+  if (difficulty === "easy") return improvement > 0 ? "discard" : "stock"
+  if (difficulty === "medium") return improvement >= 3 ? "discard" : "stock"
+  // hard: only take if it completes a meld (improvement >= 6)
+  return improvement >= 6 ? "discard" : "stock"
 }
 
-function computerDiscard(hand) {
-  // Discard card whose removal minimizes deadwood increase
+function computerDiscard(hand, difficulty, discardPile) {
+  // Always pick the card whose removal minimizes remaining deadwood
   let bestCard = null, bestDW = Infinity
   for (const card of hand) {
     const rest = hand.filter(c => c.id !== card.id)
     const { deadwoodValue: dw } = bestMelds(rest)
     if (dw < bestDW) { bestDW = dw; bestCard = card }
+  }
+  if (difficulty !== "hard") return bestCard
+
+  // Hard: among deadwood candidates, prefer "safe" discards
+  // (cards whose rank or adjacent same-suit rank is already in discard pile = dead)
+  const { deadwood } = bestMelds(hand)
+  const deadRanks = new Set(discardPile.map(c => c.rank))
+  const safeDeadwood = deadwood.filter(card => {
+    const ri = RANK_IDX[card.rank]
+    // safe if same rank already discarded, or both adjacent same-suit cards are gone
+    if (deadRanks.has(card.rank)) return true
+    const adjLow = RANKS[ri - 1]
+    const adjHigh = RANKS[ri + 1]
+    const lowGone = !adjLow || discardPile.some(c => c.rank === adjLow && c.suit === card.suit)
+    const highGone = !adjHigh || discardPile.some(c => c.rank === adjHigh && c.suit === card.suit)
+    return lowGone && highGone
+  })
+  if (safeDeadwood.length > 0) {
+    // Among safe deadwood, discard highest value
+    return safeDeadwood.sort((a, b) => b.value - a.value)[0]
   }
   return bestCard
 }
@@ -201,6 +222,9 @@ export default function GinRummy() {
   const [message, setMessage] = useState('Draw a card to start!')
   const [roundResult, setRoundResult] = useState(null)
   const [showHelp, setShowHelp] = useState(false)
+  const [showSetup, setShowSetup] = useState(true)
+  const [difficulty, setDifficulty] = useState("medium")
+  const [targetScore, setTargetScore] = useState(100)
 
   const { playerHand, computerHand, stock, discard, scores } = game
   const { melds: playerMelds, deadwood: playerDeadwood, deadwoodValue: playerDW } = bestMelds(playerHand)
@@ -260,7 +284,7 @@ export default function GinRummy() {
 
   const doComputerTurn = useCallback((pHand, dPile, sPile) => {
     const discardTop = dPile.at(-1)
-    const drawFrom = computerDraw(computerHand, discardTop)
+    const drawFrom = computerDraw(computerHand, discardTop, difficulty)
     let newStock = [...sPile], newDiscard = [...dPile], newCompHand = [...computerHand]
 
     if (drawFrom === 'discard') {
@@ -270,7 +294,7 @@ export default function GinRummy() {
       newCompHand.push(newStock.pop())
     }
 
-    const discarded = computerDiscard(newCompHand)
+    const discarded = computerDiscard(newCompHand, difficulty, newDiscard)
     newCompHand = newCompHand.filter(c => c.id !== discarded.id)
     newDiscard.push(discarded)
 
@@ -283,13 +307,14 @@ export default function GinRummy() {
       : 'stock'
     const compMsg = `Computer drew from ${fromStr}, discarded ${discarded.rank}${discarded.suit}.`
 
-    if (compDW <= 10) {
+    const knockThreshold = difficulty === "easy" ? 10 : difficulty === "medium" ? 7 : 4
+    if (compDW <= knockThreshold) {
       setTimeout(() => resolveKnock(pHand, newCompHand, scores, false, true), 400)
     } else {
       setPhase('draw')
       setMessage(compMsg + ' Your turn!')
     }
-  }, [computerHand, scores])
+  }, [computerHand, scores, difficulty])
 
   // Super gin: 0 deadwood + at least one run of ≥5 cards in the same suit
   function checkSuperGin(melds, dw) {
@@ -357,18 +382,17 @@ export default function GinRummy() {
     setMessage(msg)
   }
 
-  const WIN_SCORE = 50
-
   function nextRound() {
-    if (game.scores.player >= WIN_SCORE || game.scores.computer >= WIN_SCORE) {
+    if (game.scores.player >= targetScore || game.scores.computer >= targetScore) {
       const newGame = dealGame()
-      setGame(g => ({ ...newGame, scores: { player: 0, computer: 0 } }))
+      setGame(() => ({ ...newGame, scores: { player: 0, computer: 0 } }))
+      setShowSetup(true)
     } else {
       const newGame = dealGame()
-      setGame(g => ({ ...newGame, scores: game.scores }))
+      setGame(() => ({ ...newGame, scores: game.scores }))
+      setPhase('draw')
+      setMessage('New round! Draw a card.')
     }
-    setPhase('draw')
-    setMessage('New round! Draw a card.')
     setRoundResult(null)
     setSelected(null)
     setDrawnCardId(null)
@@ -397,7 +421,7 @@ export default function GinRummy() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium">← Back</a>
-            <h1 className="font-display text-xl font-bold text-ink">Gin Rummy</h1>
+            <h1 className="font-display text-xl font-bold text-ink">Gin Rummy{!showSetup && <span className="text-ink/40 font-normal text-base"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}</h1>
           </div>
           <div className="text-sm font-medium text-ink/70">
             You <span className="text-accent font-bold">{scores.player}</span>
@@ -530,9 +554,9 @@ export default function GinRummy() {
             <p className="font-medium text-ink mb-3">{roundResult.msg}</p>
             <p className="text-sm text-ink/60 mb-4">
               Score: You {scores.player} · Computer {scores.computer}
-              {(scores.player >= WIN_SCORE || scores.computer >= WIN_SCORE) && (
+              {(scores.player >= targetScore || scores.computer >= targetScore) && (
                 <span className="ml-2 font-bold text-accent">
-                  {scores.player >= WIN_SCORE ? '🎉 You win the game!' : '😔 Computer wins the game!'}
+                  {scores.player >= targetScore ? '🎉 You win the game!' : '😔 Computer wins the game!'}
                 </span>
               )}
             </p>
@@ -540,7 +564,7 @@ export default function GinRummy() {
               onClick={nextRound}
               className="px-6 py-2 bg-ink text-paper font-medium rounded-lg hover:bg-ink/80 transition-colors"
             >
-              {scores.player >= WIN_SCORE || scores.computer >= WIN_SCORE ? 'New Game' : 'Next Round'}
+              {scores.player >= targetScore || scores.computer >= targetScore ? 'New Game' : 'Next Round'}
             </button>
           </div>
         )}
@@ -563,6 +587,45 @@ export default function GinRummy() {
       >
         ?
       </button>
+
+      {/* Setup modal */}
+      {showSetup && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-paper rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+            <h2 className="text-xl font-bold text-ink mb-1">Gin Rummy</h2>
+            <p className="text-sm text-ink/50 mb-5">Set up your game</p>
+
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-ink/50 uppercase tracking-wider mb-2">Difficulty</p>
+              <div className="flex gap-2">
+                {[["easy","Easy","bg-green-500"],["medium","Medium","bg-yellow-500"],["hard","Hard","bg-red-500"]].map(([val,label,color]) => (
+                  <button key={val} onClick={() => setDifficulty(val)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${difficulty === val ? color + " text-white" : "bg-ink/10 text-ink/60 hover:bg-ink/20"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-ink/50 uppercase tracking-wider mb-2">Target Score</p>
+              <div className="flex gap-2">
+                {[50, 100, 200].map(pts => (
+                  <button key={pts} onClick={() => setTargetScore(pts)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${targetScore === pts ? "bg-accent text-white" : "bg-ink/10 text-ink/60 hover:bg-ink/20"}`}>
+                    {pts} pts
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => { setShowSetup(false); setGame(dealGame()); setPhase("draw"); setSelected(null); setRoundResult(null); setMessage("Draw a card to start!"); }}
+              className="w-full py-3 bg-ink text-paper font-semibold rounded-xl hover:bg-ink/80 transition-colors">
+              Play →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Help modal */}
       {showHelp && (
@@ -615,7 +678,7 @@ export default function GinRummy() {
 
               <section>
                 <h3 className="font-semibold text-ink mb-1">🏆 Winning</h3>
-                <p>First player to reach <strong>{WIN_SCORE} points</strong> wins the game.</p>
+                <p>First player to reach <strong>{targetScore} points</strong> wins the game.</p>
               </section>
 
               <section>
