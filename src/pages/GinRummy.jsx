@@ -274,22 +274,23 @@ export default function GinRummy() {
     //   Undercut   → 25 bonus + (knocker DW − opponent DW) for the other side
     let delta = 0, msg = ''
 
+    // 25-pt bonus only for gin (DW=0); regular knock = difference only
     if (compKnocked) {
       if (cSuperGin) {
         delta = 50 + pDW
-        msg = `Computer Super Gin! 🌟 Computer scores ${delta} pts.`
+        msg = `Computer Super Gin! 🌟 Computer scores ${delta} pts (50 + ${pDW}).`
         sc = { ...sc, computer: sc.computer + delta }
       } else if (cDW === 0) {
         delta = 25 + pDW
         msg = `Computer Gin! Computer scores ${delta} pts (25 + ${pDW}).`
         sc = { ...sc, computer: sc.computer + delta }
       } else if (pDW <= cDW) {
-        delta = 25 + (cDW - pDW)
-        msg = `Undercut! You score ${delta} pts (25 + ${cDW} − ${pDW}).`
+        delta = cDW - pDW
+        msg = `Undercut! You score ${delta} pts (${cDW} − ${pDW}).`
         sc = { ...sc, player: sc.player + delta }
       } else {
-        delta = 25 + (pDW - cDW)
-        msg = `Computer knocked. Computer scores ${delta} pts (25 + ${pDW} − ${cDW}).`
+        delta = pDW - cDW
+        msg = `Computer knocked. Computer scores ${delta} pts (${pDW} − ${cDW}).`
         sc = { ...sc, computer: sc.computer + delta }
       }
     } else if (pSuperGin) {
@@ -301,12 +302,12 @@ export default function GinRummy() {
       msg = `Gin! You score ${delta} pts (25 + ${cDW}).`
       sc = { ...sc, player: sc.player + delta }
     } else if (cDW <= pDW) {
-      delta = 25 + (pDW - cDW)
-      msg = `Undercut! Computer scores ${delta} pts (25 + ${pDW} − ${cDW}).`
+      delta = pDW - cDW
+      msg = `Undercut! Computer scores ${delta} pts (${pDW} − ${cDW}).`
       sc = { ...sc, computer: sc.computer + delta }
     } else {
-      delta = 25 + (cDW - pDW)
-      msg = `You knocked! You score ${delta} pts (25 + ${cDW} − ${pDW}).`
+      delta = cDW - pDW
+      msg = `You knocked! You score ${delta} pts (${cDW} − ${pDW}).`
       sc = { ...sc, player: sc.player + delta }
     }
 
@@ -366,12 +367,50 @@ export default function GinRummy() {
         {/* Computer hand */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">Computer — {computerHand.length} cards</div>
-          <div className="flex flex-wrap gap-1.5">
-            {(roundResult ? roundResult.computerHand : computerHand).map((c, i) => (
-              <Card key={c.id} card={c} faceDown={!roundResult} small />
-            ))}
-          </div>
-          {roundResult && <div className="text-xs text-ink/50 mt-1">Deadwood: {roundResult.cDW}</div>}
+          {roundResult ? (() => {
+            // Show computer hand face-up with meld groups after round ends
+            const { melds: cMelds } = bestMelds(roundResult.computerHand)
+            const cMeldColor = {}
+            cMelds.forEach((meld, mi) => {
+              const color = MELD_COLORS[mi % MELD_COLORS.length]
+              meld.forEach(c => { cMeldColor[c.id] = color })
+            })
+            const cTbl = buildHandTable(roundResult.computerHand)
+            const STEP = 23
+            const ROW_W = STEP * 12 + 44
+            return (
+              <div className="flex flex-col gap-2">
+                {SUITS.map(suit => {
+                  const suitCards = cTbl[suit]
+                  if (Object.keys(suitCards).length === 0) return null
+                  return (
+                    <div key={suit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 16, flexShrink: 0 }}
+                        className={`text-xs font-bold ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>
+                        {suit}
+                      </span>
+                      <div style={{ position: 'relative', width: ROW_W, height: 62 }}>
+                        {RANKS.map((rank, ri) => {
+                          const card = suitCards[rank]
+                          if (!card) return null
+                          return (
+                            <div key={rank} style={{ position: 'absolute', left: ri * STEP, zIndex: ri + 1 }}>
+                              <Card card={card} meldColor={cMeldColor[card.id] || null} small />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className="text-xs text-ink/50">Deadwood: {roundResult.cDW}</div>
+              </div>
+            )
+          })() : (
+            <div className="flex flex-wrap gap-1.5">
+              {computerHand.map(c => <Card key={c.id} card={c} faceDown small />)}
+            </div>
+          )}
         </div>
 
         {/* Stock + Discard */}
