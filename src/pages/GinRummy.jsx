@@ -117,8 +117,16 @@ function dealGame() {
   return { playerHand, computerHand, stock, discard, scores: { player: 0, computer: 0 } }
 }
 
+// ── Meld color palette ────────────────────────────────────────
+const MELD_COLORS = [
+  { bg: '#dcfce7', border: '#16a34a', shadow: '#16a34a50' },
+  { bg: '#dbeafe', border: '#2563eb', shadow: '#2563eb50' },
+  { bg: '#f3e8ff', border: '#9333ea', shadow: '#9333ea50' },
+  { bg: '#ffedd5', border: '#ea580c', shadow: '#ea580c50' },
+]
+
 // ── Card component ────────────────────────────────────────────
-function Card({ card, faceDown, selected, meld, newCard, onClick, small }) {
+function Card({ card, faceDown, selected, meldColor, newCard, onClick, small }) {
   const sz = small ? { w: 44, h: 62, fs: 11 } : { w: 58, h: 82, fs: 14 }
   if (faceDown) return (
     <div onClick={onClick} style={{
@@ -128,15 +136,16 @@ function Card({ card, faceDown, selected, meld, newCard, onClick, small }) {
     }} />
   )
   const red = isRed(card.suit)
+  const bg = selected ? '#fef9c3' : newCard ? '#eff6ff' : meldColor ? meldColor.bg : 'white'
+  const borderCol = selected ? '#f59e0b' : newCard ? '#3b82f6' : meldColor ? meldColor.border : '#d4d0c8'
+  const shadow = selected ? '0 0 0 3px #f59e0b50' : meldColor ? `0 0 6px 2px ${meldColor.shadow}` : '0 1px 3px rgba(0,0,0,0.1)'
   return (
     <div onClick={onClick} style={{
       width: sz.w, height: sz.h, borderRadius: 6, flexShrink: 0,
-      background: selected ? '#fef9c3' : newCard ? '#eff6ff' : meld ? '#dcfce7' : 'white',
-      border: `2px solid ${selected ? '#f59e0b' : newCard ? '#3b82f6' : meld ? '#22c55e' : '#d4d0c8'}`,
+      background: bg, border: `2px solid ${borderCol}`,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       padding: '3px 4px', cursor: onClick ? 'pointer' : 'default',
-      boxShadow: selected ? '0 0 0 2px #f59e0b40' : '0 1px 3px rgba(0,0,0,0.1)',
-      transition: 'all 0.1s',
+      boxShadow: shadow, transition: 'all 0.1s',
     }}>
       <div style={{ fontSize: sz.fs, fontWeight: 700, color: red ? '#e63946' : '#1a1a2e', lineHeight: 1 }}>
         {card.rank}<br/>{card.suit}
@@ -160,6 +169,12 @@ export default function GinRummy() {
   const { playerHand, computerHand, stock, discard, scores } = game
   const { melds: playerMelds, deadwood: playerDeadwood, deadwoodValue: playerDW } = bestMelds(playerHand)
   const meldedIds = new Set(playerMelds.flat().map(c => c.id))
+  // Assign a distinct color to each meld group
+  const cardMeldColor = {}
+  playerMelds.forEach((meld, mi) => {
+    const color = MELD_COLORS[mi % MELD_COLORS.length]
+    meld.forEach(c => { cardMeldColor[c.id] = color })
+  })
 
   // ── Actions ─────────────────────────────────────────────────
   function drawCard(from) {
@@ -333,56 +348,51 @@ export default function GinRummy() {
           </div>
         </div>
 
-        {/* Player hand — meld clusters + deadwood spread */}
+        {/* Player hand — suit rows, rank-position overlapping (A left → K right) */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">
             Your hand — Deadwood: <span className="text-ink font-bold">{playerDW}</span>
-            {playerHand.length === 11 && <span className="text-accent ml-2">← tap a card to select for discard</span>}
+            {playerHand.length === 11 && <span className="text-accent ml-2">← tap a card to discard</span>}
           </div>
-          <div className="flex flex-wrap gap-3 items-end">
-            {/* Meld clusters — diagonal fan (shift right + down per card) */}
-            {playerMelds.map((meld, mi) => {
-              const DX = 20  // horizontal step
-              const DY = 10  // vertical step (diagonal)
-              const w = DX * (meld.length - 1) + 44
-              const h = DY * (meld.length - 1) + 62
-              return (
-                <div key={mi} style={{ position: 'relative', width: w, height: h, flexShrink: 0 }}>
-                  {meld.map((card, ci) => (
-                    <div key={card.id} style={{ position: 'absolute', left: ci * DX, top: ci * DY, zIndex: ci + 1 }}>
-                      <Card
-                        card={card}
-                        meld={selected !== card.id}
-                        selected={selected === card.id}
-                        onClick={() => selectCard(card.id)}
-                        small
-                      />
+          {(() => {
+            const tbl = buildHandTable(playerHand)
+            const STEP = 23          // px per rank slot
+            const ROW_W = STEP * 12 + 44  // 320px — fits any phone
+            return (
+              <div className="flex flex-col gap-2">
+                {SUITS.map(suit => {
+                  const suitCards = tbl[suit]
+                  if (Object.keys(suitCards).length === 0) return null
+                  return (
+                    <div key={suit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 16, flexShrink: 0 }}
+                        className={`text-xs font-bold ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>
+                        {suit}
+                      </span>
+                      <div style={{ position: 'relative', width: ROW_W, height: 62 }}>
+                        {RANKS.map((rank, ri) => {
+                          const card = suitCards[rank]
+                          if (!card) return null
+                          return (
+                            <div key={rank} style={{ position: 'absolute', left: ri * STEP, zIndex: ri + 1 }}>
+                              <Card
+                                card={card}
+                                selected={selected === card.id}
+                                meldColor={selected === card.id ? null : (cardMeldColor[card.id] || null)}
+                                newCard={drawnCardId === card.id}
+                                onClick={() => selectCard(card.id)}
+                                small
+                              />
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )
-            })}
-
-            {/* Divider between melds and deadwood */}
-            {playerMelds.length > 0 && playerDeadwood.length > 0 && (
-              <div style={{ width: 1, height: 62, background: 'rgba(0,0,0,0.12)', alignSelf: 'stretch', flexShrink: 0 }} />
-            )}
-
-            {/* Deadwood — individual cards, sorted high→low (expensive first) */}
-            {[...playerDeadwood]
-              .sort((a, b) => b.value - a.value)
-              .map(card => (
-                <Card
-                  key={card.id}
-                  card={card}
-                  selected={selected === card.id}
-                  newCard={drawnCardId === card.id}
-                  onClick={() => selectCard(card.id)}
-                  small
-                />
-              ))
-            }
-          </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Action buttons */}
@@ -437,7 +447,9 @@ export default function GinRummy() {
 
         {/* Meld legend */}
         <div className="text-xs text-ink/40 flex gap-4 flex-wrap">
-          <span><span className="inline-block w-3 h-3 rounded bg-green-100 border border-green-400 mr-1" />Melded</span>
+          <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ background: MELD_COLORS[0].bg, border: `1px solid ${MELD_COLORS[0].border}` }} />Meld 1</span>
+          <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ background: MELD_COLORS[1].bg, border: `1px solid ${MELD_COLORS[1].border}` }} />Meld 2</span>
+          <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ background: MELD_COLORS[2].bg, border: `1px solid ${MELD_COLORS[2].border}` }} />Meld 3</span>
           <span><span className="inline-block w-3 h-3 rounded bg-yellow-100 border border-yellow-400 mr-1" />Selected</span>
           <span><span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-400 mr-1" />Just drawn</span>
         </div>
