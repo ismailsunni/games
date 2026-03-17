@@ -54,9 +54,14 @@ function findRuns(hand) {
     while (i < sorted.length) {
       let j = i + 1
       while (j < sorted.length && RANK_IDX[sorted[j].rank] === RANK_IDX[sorted[j - 1].rank] + 1) j++
+      // Generate ALL sub-runs (any start, any length ≥ 3) within this consecutive block
+      // e.g. 6♥7♥8♥9♥ → [6,7,8], [6,7,8,9], [7,8,9] — so 7,8,9 can free 6♥ for a set
       if (j - i >= 3) {
-        for (let len = 3; len <= j - i; len++)
-          runs.push(sorted.slice(i, i + len))
+        for (let start = i; start <= j - 3; start++) {
+          for (let len = 3; len <= j - start; len++) {
+            runs.push(sorted.slice(start, start + len))
+          }
+        }
       }
       i = j
     }
