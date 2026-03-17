@@ -251,36 +251,63 @@ export default function GinRummy() {
     }
   }, [computerHand, scores])
 
-  function resolveKnock(pHand, cHand, sc, isGin, compKnocked = false) {
-    const { deadwoodValue: pDW } = bestMelds(pHand)
-    const { deadwoodValue: cDW } = bestMelds(cHand)
+  // Super gin: 0 deadwood + at least one run of ≥5 cards in the same suit
+  function checkSuperGin(melds, dw) {
+    if (dw !== 0) return false
+    return melds.some(meld =>
+      meld.length >= 5 &&
+      new Set(meld.map(c => c.suit)).size === 1
+    )
+  }
 
-    // Scoring: winner gets (loser deadwood − winner deadwood)
+  function resolveKnock(pHand, cHand, sc, _isGin, compKnocked = false) {
+    const { melds: pMelds, deadwoodValue: pDW } = bestMelds(pHand)
+    const { melds: cMelds, deadwoodValue: cDW } = bestMelds(cHand)
+
+    const pSuperGin = checkSuperGin(pMelds, pDW)
+    const cSuperGin = checkSuperGin(cMelds, cDW)
+
+    // Scoring rules:
+    //   Super Gin  → 50 bonus + opponent DW
+    //   Gin (DW=0) → 25 bonus + opponent DW
+    //   Knock      → 25 bonus + (opponent DW − knocker DW)
+    //   Undercut   → 25 bonus + (knocker DW − opponent DW) for the other side
     let delta = 0, msg = ''
+
     if (compKnocked) {
-      if (pDW <= cDW) {
-        delta = cDW - pDW
-        msg = `Undercut! You score ${delta} pts (${cDW} − ${pDW}).`
+      if (cSuperGin) {
+        delta = 50 + pDW
+        msg = `Computer Super Gin! 🌟 Computer scores ${delta} pts.`
+        sc = { ...sc, computer: sc.computer + delta }
+      } else if (cDW === 0) {
+        delta = 25 + pDW
+        msg = `Computer Gin! Computer scores ${delta} pts (25 + ${pDW}).`
+        sc = { ...sc, computer: sc.computer + delta }
+      } else if (pDW <= cDW) {
+        delta = 25 + (cDW - pDW)
+        msg = `Undercut! You score ${delta} pts (25 + ${cDW} − ${pDW}).`
         sc = { ...sc, player: sc.player + delta }
       } else {
-        delta = pDW - cDW
-        msg = `Computer knocked. Computer scores ${delta} pts (${pDW} − ${cDW}).`
+        delta = 25 + (pDW - cDW)
+        msg = `Computer knocked. Computer scores ${delta} pts (25 + ${pDW} − ${cDW}).`
         sc = { ...sc, computer: sc.computer + delta }
       }
-    } else if (pDW === 0) {
-      delta = cDW
-      msg = `Gin! You score ${delta} pts.`
+    } else if (pSuperGin) {
+      delta = 50 + cDW
+      msg = `Super Gin! 🌟 You score ${delta} pts (50 + ${cDW}).`
       sc = { ...sc, player: sc.player + delta }
+    } else if (pDW === 0) {
+      delta = 25 + cDW
+      msg = `Gin! You score ${delta} pts (25 + ${cDW}).`
+      sc = { ...sc, player: sc.player + delta }
+    } else if (cDW <= pDW) {
+      delta = 25 + (pDW - cDW)
+      msg = `Undercut! Computer scores ${delta} pts (25 + ${pDW} − ${cDW}).`
+      sc = { ...sc, computer: sc.computer + delta }
     } else {
-      if (cDW <= pDW) {
-        delta = pDW - cDW
-        msg = `Undercut! Computer scores ${delta} pts (${pDW} − ${cDW}).`
-        sc = { ...sc, computer: sc.computer + delta }
-      } else {
-        delta = cDW - pDW
-        msg = `You knocked. You score ${delta} pts (${cDW} − ${pDW}).`
-        sc = { ...sc, player: sc.player + delta }
-      }
+      delta = 25 + (cDW - pDW)
+      msg = `You knocked! You score ${delta} pts (25 + ${cDW} − ${pDW}).`
+      sc = { ...sc, player: sc.player + delta }
     }
 
     setRoundResult({ msg, playerHand: pHand, computerHand: cHand, pDW, cDW })
@@ -316,6 +343,7 @@ export default function GinRummy() {
 
   const canKnock = phase === 'discard' && playerDW <= 10
   const canGin = phase === 'discard' && playerHand.length === 11 && playerDW === 0
+  const canSuperGin = canGin && checkSuperGin(playerMelds, playerDW)
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
@@ -432,7 +460,15 @@ export default function GinRummy() {
                 Knock ({playerDW} DW)
               </button>
             )}
-            {canGin && (
+            {canSuperGin && (
+              <button
+                onClick={() => doKnock(true)}
+                className="px-6 py-2 bg-purple-600 text-paper font-medium rounded-lg hover:bg-purple-500 transition-colors"
+              >
+                Super Gin! 🌟
+              </button>
+            )}
+            {canGin && !canSuperGin && (
               <button
                 onClick={() => doKnock(true)}
                 className="px-6 py-2 bg-green-600 text-paper font-medium rounded-lg hover:bg-green-500 transition-colors"
