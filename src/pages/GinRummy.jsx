@@ -269,10 +269,29 @@ export default function GinRummy() {
   const [flyingCards, setFlyingCards] = useState([])     // flying card overlays
 
   // Refs for card-flight source/destination
-  const stockRef      = useRef(null)
+  const stockRef       = useRef(null)
   const discardPileRef = useRef(null)
   const playerHandRef  = useRef(null)
   const compHandRef    = useRef(null)
+  const cardEls        = useRef({})   // card.id → wrapper DOM element
+
+  // Calculate expected screen rect of a card in the player's suit-row layout
+  function getCardRect(card, hand) {
+    const wrapper = cardEls.current[card.id]
+    if (wrapper) return wrapper.getBoundingClientRect()
+    // Fallback: estimate position from layout constants
+    if (!playerHandRef.current) return null
+    const container = playerHandRef.current.getBoundingClientRect()
+    const suitsPresent = SUITS.filter(s => hand.some(c => c.suit === s))
+    const rowIdx  = suitsPresent.indexOf(card.suit)
+    if (rowIdx === -1) return null
+    const STEP = 23, ROW_H = 70, LABEL_W = 22
+    return {
+      left: container.left + LABEL_W + RANK_IDX[card.rank] * STEP,
+      top:  container.top  + rowIdx * ROW_H,
+      width: 44, height: 62,
+    }
+  }
 
   function triggerFly(card, fromRef, toRef, faceDown, delay = 0) {
     const fromEl = fromRef?.current
@@ -329,9 +348,19 @@ export default function GinRummy() {
     } else {
       drawn = newDiscard.pop()
     }
-    // Fly ghost from pile → player hand
-    const ghostCard = from === 'stock' ? drawn : drawn  // face-down for stock, visible for discard
-    triggerFly(ghostCard, from === 'stock' ? stockRef : discardPileRef, playerHandRef, from === 'stock')
+    // Fly: pile → exact card position in hand
+    const newHand = [...playerHand, drawn]
+    const toRect = getCardRect(drawn, newHand)
+    const fromEl = (from === 'stock' ? stockRef : discardPileRef).current
+    if (fromEl && toRect) {
+      const id = Date.now() + Math.random()
+      setFlyingCards(fc => [...fc, {
+        id, card: drawn, faceDown: from === 'stock',
+        fromRect: fromEl.getBoundingClientRect(),
+        toRect,
+      }])
+      setTimeout(() => setFlyingCards(fc => fc.filter(f => f.id !== id)), 400)
+    }
     setGame(g => ({ ...g, playerHand: [...g.playerHand, drawn], stock: newStock, discard: newDiscard }))
     setDrawnCardId(drawn.id)
     setPhase('discard')
@@ -350,8 +379,18 @@ export default function GinRummy() {
   function doDiscard() {
     if (!selected || phase !== 'discard') return
     const card = playerHand.find(c => c.id === selected)
-    // Fly card from hand area → discard pile
-    triggerFly(card, playerHandRef, discardPileRef, false)
+    // Fly card from exact card position → discard pile
+    const cardFromEl = cardEls.current[selected]
+    const toEl = discardPileRef.current
+    if (cardFromEl && toEl) {
+      const id = Date.now() + Math.random()
+      setFlyingCards(fc => [...fc, {
+        id, card, faceDown: false,
+        fromRect: cardFromEl.getBoundingClientRect(),
+        toRect: toEl.getBoundingClientRect(),
+      }])
+      setTimeout(() => setFlyingCards(fc => fc.filter(f => f.id !== id)), 400)
+    }
     setDiscardingId(selected)
     setTimeout(() => {
       const newHand = playerHand.filter(c => c.id !== selected)
@@ -561,7 +600,13 @@ export default function GinRummy() {
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">Computer — {computerHand.length} cards</div>
           {roundResult
             ? <><HandSummary hand={roundResult.computerHand} /><div className="text-xs text-ink/50 mt-1">Deadwood: {roundResult.cDW}</div></>
-            : <div className="flex flex-wrap gap-1.5">{computerHand.map(c => <Card key={c.id} card={c} faceDown small />)}</div>
+            : <div style={{ position: 'relative', height: 62, width: computerHand.length * 18 + 26 }}>
+                {computerHand.map((c, i) => (
+                  <div key={c.id} style={{ position: 'absolute', left: i * 18, zIndex: i }}>
+                    <Card card={c} faceDown small />
+                  </div>
+                ))}
+              </div>
           }
         </div>
 
@@ -613,7 +658,7 @@ export default function GinRummy() {
                           const card = suitCards[rank]
                           if (!card) return null
                           return (
-                            <div key={rank} style={{ position: 'absolute', left: ri * STEP, zIndex: ri + 1 }}>
+                            <div key={rank} ref={el => { if (el) cardEls.current[card.id] = el; else delete cardEls.current[card.id] }} style={{ position: 'absolute', left: ri * STEP, zIndex: ri + 1 }}>
                               <Card
                                 card={card}
                                 selected={selected === card.id}
