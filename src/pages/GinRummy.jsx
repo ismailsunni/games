@@ -249,17 +249,12 @@ export default function GinRummy() {
     setTimeout(() => doComputerTurn(newHand, newDiscard, game.stock), 800)
   }
 
-  function doKnock(isGin = false) {
-    if (phase !== 'discard') return
-    // If gin, discard selected card first (or don't if 11-card gin)
-    let finalHand = playerHand
-    let finalDiscard = discard
-    if (selected && !isGin) {
-      const card = playerHand.find(c => c.id === selected)
-      finalHand = playerHand.filter(c => c.id !== selected)
-      finalDiscard = [...discard, card]
-    }
-    resolveKnock(finalHand, computerHand, scores, isGin)
+  function doKnock() {
+    if (phase !== 'discard' || !selected) return
+    // Always discard the selected card first, then evaluate the 10-card hand
+    const card = playerHand.find(c => c.id === selected)
+    const finalHand = playerHand.filter(c => c.id !== selected)
+    resolveKnock(finalHand, computerHand, scores, false)
   }
 
   const doComputerTurn = useCallback((pHand, dPile, sPile) => {
@@ -386,9 +381,13 @@ export default function GinRummy() {
     return table
   }
 
-  const canKnock = phase === 'discard' && playerDW <= 10
-  const canGin = phase === 'discard' && playerHand.length === 11 && playerDW === 0
-  const canSuperGin = canGin && checkSuperGin(playerMelds, playerDW)
+  // Evaluate knock/gin eligibility based on the POST-discard 10-card hand
+  const _postDiscard = (phase === 'discard' && selected)
+    ? bestMelds(playerHand.filter(c => c.id !== selected))
+    : null
+  const canKnock = !!_postDiscard && _postDiscard.deadwoodValue <= 10
+  const canGin   = !!_postDiscard && _postDiscard.deadwoodValue === 0
+  const canSuperGin = canGin && checkSuperGin(_postDiscard.melds, 0)
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
@@ -499,7 +498,7 @@ export default function GinRummy() {
             </button>
             {canKnock && (
               <button
-                onClick={() => doKnock(false)}
+                onClick={doKnock}
                 className="px-6 py-2 bg-accent text-paper font-medium rounded-lg hover:bg-accent/80 transition-colors"
               >
                 Knock ({playerDW} DW)
@@ -507,7 +506,7 @@ export default function GinRummy() {
             )}
             {canSuperGin && (
               <button
-                onClick={() => doKnock(true)}
+                onClick={doKnock}
                 className="px-6 py-2 bg-purple-600 text-paper font-medium rounded-lg hover:bg-purple-500 transition-colors"
               >
                 Super Gin! 🌟
@@ -515,7 +514,7 @@ export default function GinRummy() {
             )}
             {canGin && !canSuperGin && (
               <button
-                onClick={() => doKnock(true)}
+                onClick={doKnock}
                 className="px-6 py-2 bg-green-600 text-paper font-medium rounded-lg hover:bg-green-500 transition-colors"
               >
                 Gin! 🎉
