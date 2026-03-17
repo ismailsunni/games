@@ -200,6 +200,7 @@ export default function GinRummy() {
   const [drawnCardId, setDrawnCardId] = useState(null) // highlights the just-drawn card
   const [message, setMessage] = useState('Draw a card to start!')
   const [roundResult, setRoundResult] = useState(null)
+  const [showHelp, setShowHelp] = useState(false)
 
   const { playerHand, computerHand, stock, discard, scores } = game
   const { melds: playerMelds, deadwood: playerDeadwood, deadwoodValue: playerDW } = bestMelds(playerHand)
@@ -550,9 +551,103 @@ export default function GinRummy() {
           <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ background: MELD_COLORS[1].bg, border: `1px solid ${MELD_COLORS[1].border}` }} />Meld 2</span>
           <span><span className="inline-block w-3 h-3 rounded mr-1" style={{ background: MELD_COLORS[2].bg, border: `1px solid ${MELD_COLORS[2].border}` }} />Meld 3</span>
           <span><span className="inline-block w-3 h-3 rounded bg-yellow-100 border border-yellow-400 mr-1" />Selected</span>
-          <span><span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-400 mr-1" />Just drawn</span>
+          <span><span className="inline-block w-3 h-3 rounded bg-orange-100 border border-orange-400 mr-1" />Just drawn</span>
         </div>
       </main>
+
+      {/* Help button — fixed bottom-right */}
+      <button
+        onClick={() => setShowHelp(true)}
+        className="fixed bottom-5 right-5 w-9 h-9 rounded-full bg-ink text-paper text-sm font-bold shadow-lg hover:bg-ink/80 transition-colors z-40"
+        aria-label="Help"
+      >
+        ?
+      </button>
+
+      {/* Help modal */}
+      {showHelp && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="bg-paper rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-5 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-ink">How to Play — Gin Rummy</h2>
+              <button onClick={() => setShowHelp(false)} className="text-ink/40 hover:text-ink text-xl leading-none">✕</button>
+            </div>
+
+            <div className="space-y-4 text-sm text-ink/80">
+              <section>
+                <h3 className="font-semibold text-ink mb-1">🎯 Goal</h3>
+                <p>Form your 10 cards into <strong>melds</strong> and reduce your <strong>deadwood</strong> (unmelded cards) to 10 or less to Knock, or 0 to Gin.</p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-ink mb-1">🃏 Melds</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>Set</strong> — 3 or 4 cards of the same rank (e.g. 7♠ 7♥ 7♦)</li>
+                  <li><strong>Run</strong> — 3+ consecutive cards of the same suit (e.g. 5♣ 6♣ 7♣)</li>
+                </ul>
+                <p className="mt-1">Meld groups are highlighted in color automatically.</p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-ink mb-1">🔄 Each Turn</h3>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Draw from the <strong>Stock</strong> (face-down) or <strong>Discard</strong> pile</li>
+                  <li>Tap a card to select it, tap again to discard it — or use the Discard button</li>
+                </ol>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-ink mb-1">🏁 Ending a Round</h3>
+                <p>After drawing, select the card you want to discard. If the remaining 10 cards qualify:</p>
+                <ul className="list-disc list-inside space-y-1 mt-1">
+                  <li><strong>Knock</strong> — deadwood ≤ 10. Score = your opponent's DW − yours</li>
+                  <li><strong>Gin</strong> 🎉 — deadwood = 0. Score = 25 + opponent's DW</li>
+                  <li><strong>Super Gin</strong> 🌟 — Gin with a 5-card same-suit run. Score = 50 + opponent's DW</li>
+                  <li><strong>Undercut</strong> — if you knock but your opponent's DW ≤ yours, opponent scores 25 + difference</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-ink mb-1">🏆 Winning</h3>
+                <p>First player to reach <strong>{WIN_SCORE} points</strong> wins the game.</p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-ink mb-1">🎨 Card Colors</h3>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {MELD_COLORS.map((c, i) => (
+                    <span key={i} className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded" style={{ background: c.bg, border: `1px solid ${c.border}` }} />
+                      <span>Meld {i + 1}</span>
+                    </span>
+                  ))}
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-3 h-3 rounded bg-yellow-100 border border-yellow-400" />
+                    <span>Selected</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-3 h-3 rounded bg-orange-100 border border-orange-400" />
+                    <span>Just drawn</span>
+                  </span>
+                </div>
+              </section>
+            </div>
+
+            <button
+              onClick={() => setShowHelp(false)}
+              className="mt-5 w-full py-2 bg-ink text-paper rounded-lg font-medium hover:bg-ink/80 transition-colors"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
