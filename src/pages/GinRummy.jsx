@@ -158,7 +158,7 @@ export default function GinRummy() {
   const [roundResult, setRoundResult] = useState(null)
 
   const { playerHand, computerHand, stock, discard, scores } = game
-  const { melds: playerMelds, deadwoodValue: playerDW } = bestMelds(playerHand)
+  const { melds: playerMelds, deadwood: playerDeadwood, deadwoodValue: playerDW } = bestMelds(playerHand)
   const meldedIds = new Set(playerMelds.flat().map(c => c.id))
 
   // ── Actions ─────────────────────────────────────────────────
@@ -333,45 +333,52 @@ export default function GinRummy() {
           </div>
         </div>
 
-        {/* Player hand — overlapping fan, one row per suit, sorted A→K */}
+        {/* Player hand — meld clusters + deadwood spread */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">
             Your hand — Deadwood: <span className="text-ink font-bold">{playerDW}</span>
-            {playerHand.length === 11 && <span className="text-accent ml-2">← select card to discard</span>}
+            {playerHand.length === 11 && <span className="text-accent ml-2">← tap a card to select for discard</span>}
           </div>
-          <div className="flex flex-col gap-3">
-            {(() => {
-              const tbl = buildHandTable(playerHand)
-              const CARD_W = 44
-              const CARD_H = 62
-              const STEP = 24 // px per card; 13 cards × 24 fits ~332px
-              return SUITS.map(suit => {
-                const cards = RANKS.map(rank => tbl[suit][rank]).filter(Boolean)
-                if (cards.length === 0) return null
-                const rowW = STEP * (cards.length - 1) + CARD_W
-                return (
-                  <div key={suit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 16, flexShrink: 0 }} className={`text-xs font-bold ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>
-                      {suit}
-                    </span>
-                    <div style={{ position: 'relative', width: rowW, height: CARD_H, flexShrink: 0 }}>
-                      {cards.map((card, idx) => (
-                        <div key={card.id} style={{ position: 'absolute', left: idx * STEP, zIndex: idx + 1 }}>
-                          <Card
-                            card={card}
-                            selected={selected === card.id}
-                            meld={meldedIds.has(card.id) && selected !== card.id}
-                            newCard={drawnCardId === card.id}
-                            onClick={() => selectCard(card.id)}
-                            small
-                          />
-                        </div>
-                      ))}
+          <div className="flex flex-wrap gap-3 items-end">
+            {/* Meld clusters — tightly overlapping */}
+            {playerMelds.map((meld, mi) => {
+              const w = 22 * (meld.length - 1) + 44
+              return (
+                <div key={mi} style={{ position: 'relative', width: w, height: 62, flexShrink: 0 }}>
+                  {meld.map((card, ci) => (
+                    <div key={card.id} style={{ position: 'absolute', left: ci * 22, zIndex: ci + 1 }}>
+                      <Card
+                        card={card}
+                        meld={selected !== card.id}
+                        selected={selected === card.id}
+                        onClick={() => selectCard(card.id)}
+                        small
+                      />
                     </div>
-                  </div>
-                )
-              })
-            })()}
+                  ))}
+                </div>
+              )
+            })}
+
+            {/* Divider between melds and deadwood */}
+            {playerMelds.length > 0 && playerDeadwood.length > 0 && (
+              <div style={{ width: 1, height: 62, background: 'rgba(0,0,0,0.12)', alignSelf: 'stretch', flexShrink: 0 }} />
+            )}
+
+            {/* Deadwood — individual cards, sorted high→low (expensive first) */}
+            {[...playerDeadwood]
+              .sort((a, b) => b.value - a.value)
+              .map(card => (
+                <Card
+                  key={card.id}
+                  card={card}
+                  selected={selected === card.id}
+                  newCard={drawnCardId === card.id}
+                  onClick={() => selectCard(card.id)}
+                  small
+                />
+              ))
+            }
           </div>
         </div>
 
