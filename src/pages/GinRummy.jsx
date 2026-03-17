@@ -1,10 +1,16 @@
 import { useState, useCallback, useEffect } from 'react'
 
 const LS_KEY = 'gin-rummy-save'
+const LS_STATS_KEY = 'gin-rummy-stats'
 function loadSave() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) } catch { return null }
 }
 function clearSave() { localStorage.removeItem(LS_KEY) }
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(LS_STATS_KEY)) ?? { gamesWon:0, gamesLost:0, roundsWon:0, roundsLost:0 } }
+  catch { return { gamesWon:0, gamesLost:0, roundsWon:0, roundsLost:0 } }
+}
+function saveStats(s) { localStorage.setItem(LS_STATS_KEY, JSON.stringify(s)) }
 
 // ── Deck helpers ──────────────────────────────────────────────
 const SUITS = ['♠', '♣', '♥', '♦']
@@ -229,6 +235,8 @@ export default function GinRummy() {
   const [message, setMessage] = useState(() => _save?.message ?? 'Draw a card to start!')
   const [roundResult, setRoundResult] = useState(() => _save?.roundResult ?? null)
   const [showHelp, setShowHelp] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [stats, setStats] = useState(() => loadStats())
   const [showSetup, setShowSetup] = useState(() => _save ? false : true)
   const [difficulty, setDifficulty] = useState(() => _save?.difficulty ?? 'medium')
   const [targetScore, setTargetScore] = useState(() => _save?.targetScore ?? 100)
@@ -391,6 +399,18 @@ export default function GinRummy() {
       sc = { ...sc, player: sc.player + delta }
     }
 
+    // Track round stats
+    const playerWonRound = sc.player > scores.player
+    setStats(prev => {
+      const next = {
+        ...prev,
+        roundsWon:  prev.roundsWon  + (playerWonRound ? 1 : 0),
+        roundsLost: prev.roundsLost + (playerWonRound ? 0 : 1),
+      }
+      saveStats(next)
+      return next
+    })
+
     setRoundResult({ msg, playerHand: pHand, computerHand: cHand, pDW, cDW })
     setGame(g => ({ ...g, scores: sc, playerHand: pHand, computerHand: cHand }))
     setPhase('result')
@@ -399,6 +419,16 @@ export default function GinRummy() {
 
   function nextRound() {
     if (game.scores.player >= targetScore || game.scores.computer >= targetScore) {
+      const playerWonGame = game.scores.player >= targetScore
+      setStats(prev => {
+        const next = {
+          ...prev,
+          gamesWon:  prev.gamesWon  + (playerWonGame ? 1 : 0),
+          gamesLost: prev.gamesLost + (playerWonGame ? 0 : 1),
+        }
+        saveStats(next)
+        return next
+      })
       const newGame = dealGame()
       setGame(() => ({ ...newGame, scores: { player: 0, computer: 0 } }))
       setShowSetup(true)
@@ -567,7 +597,7 @@ export default function GinRummy() {
         {phase === 'result' && roundResult && (
           <div className="bg-canvas rounded-xl p-4 border border-ink/10">
             <p className="font-medium text-ink mb-3">{roundResult.msg}</p>
-            <p className="text-sm text-ink/60 mb-4">
+            <p className="text-sm text-ink/60 mb-2">
               Score: You {scores.player} · Computer {scores.computer}
               {(scores.player >= targetScore || scores.computer >= targetScore) && (
                 <span className="ml-2 font-bold text-accent">
@@ -575,6 +605,27 @@ export default function GinRummy() {
                 </span>
               )}
             </p>
+            {/* Overall stats shown when game ends */}
+            {(scores.player >= targetScore || scores.computer >= targetScore) && (
+              <div className="bg-paper rounded-lg p-3 mb-3 text-xs text-ink/70 flex gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-ink">{stats.gamesWon}<span className="text-ink/30">/{stats.gamesWon + stats.gamesLost}</span></div>
+                  <div>Games won</div>
+                </div>
+                <div className="w-px bg-ink/10" />
+                <div className="text-center">
+                  <div className="text-lg font-bold text-ink">{stats.roundsWon}<span className="text-ink/30">/{stats.roundsWon + stats.roundsLost}</span></div>
+                  <div>Rounds won</div>
+                </div>
+                <div className="w-px bg-ink/10" />
+                <div className="text-center">
+                  <div className="text-lg font-bold text-ink">
+                    {stats.gamesWon + stats.gamesLost === 0 ? '—' : Math.round(100 * stats.gamesWon / (stats.gamesWon + stats.gamesLost)) + '%'}
+                  </div>
+                  <div>Win rate</div>
+                </div>
+              </div>
+            )}
             <button
               onClick={nextRound}
               className="px-6 py-2 bg-ink text-paper font-medium rounded-lg hover:bg-ink/80 transition-colors"
@@ -594,14 +645,70 @@ export default function GinRummy() {
         </div>
       </main>
 
-      {/* Help button — fixed bottom-right */}
-      <button
-        onClick={() => setShowHelp(true)}
-        className="fixed bottom-5 right-5 w-9 h-9 rounded-full bg-ink text-paper text-sm font-bold shadow-lg hover:bg-ink/80 transition-colors z-40"
-        aria-label="Help"
-      >
-        ?
-      </button>
+      {/* Fixed bottom-right buttons */}
+      <div className="fixed bottom-5 right-5 flex flex-col gap-2 z-40">
+        <button
+          onClick={() => setShowStats(true)}
+          className="w-9 h-9 rounded-full bg-ink text-paper text-sm font-bold shadow-lg hover:bg-ink/80 transition-colors"
+          aria-label="Stats"
+          title="Stats"
+        >
+          📊
+        </button>
+        <button
+          onClick={() => setShowHelp(true)}
+          className="w-9 h-9 rounded-full bg-ink text-paper text-sm font-bold shadow-lg hover:bg-ink/80 transition-colors"
+          aria-label="Help"
+        >
+          ?
+        </button>
+      </div>
+
+      {/* Stats modal */}
+      {showStats && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowStats(false)}>
+          <div className="bg-paper rounded-2xl w-full max-w-sm p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-bold text-ink">Your Stats</h2>
+              <button onClick={() => setShowStats(false)} className="text-ink/40 hover:text-ink text-xl leading-none">✕</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              {[
+                { label: 'Games Won',  value: stats.gamesWon,   color: 'text-green-600' },
+                { label: 'Games Lost', value: stats.gamesLost,  color: 'text-red-500'   },
+                { label: 'Rounds Won',  value: stats.roundsWon,  color: 'text-green-600' },
+                { label: 'Rounds Lost', value: stats.roundsLost, color: 'text-red-500'   },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-canvas rounded-xl p-3 text-center">
+                  <div className={`text-3xl font-bold ${color}`}>{value}</div>
+                  <div className="text-xs text-ink/50 mt-0.5">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-canvas rounded-xl p-3 text-center mb-5">
+              <div className="text-3xl font-bold text-ink">
+                {stats.gamesWon + stats.gamesLost === 0
+                  ? '—'
+                  : Math.round(100 * stats.gamesWon / (stats.gamesWon + stats.gamesLost)) + '%'}
+              </div>
+              <div className="text-xs text-ink/50 mt-0.5">Game Win Rate</div>
+            </div>
+
+            <button
+              onClick={() => {
+                const reset = { gamesWon:0, gamesLost:0, roundsWon:0, roundsLost:0 }
+                saveStats(reset)
+                setStats(reset)
+              }}
+              className="w-full py-2 bg-red-500/10 text-red-500 rounded-lg text-sm font-medium hover:bg-red-500/20 transition-colors"
+            >
+              Reset Stats
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Setup modal */}
       {showSetup && (
