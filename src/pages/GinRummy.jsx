@@ -157,6 +157,36 @@ function Card({ card, faceDown, selected, meldColor, newCard, onClick, small }) 
   )
 }
 
+// ── HandSummary — compact meld clusters + deadwood (used at round end) ───────
+function HandSummary({ hand }) {
+  const { melds, deadwood } = bestMelds(hand)
+  const STEP = 20
+  return (
+    <div className="flex flex-wrap gap-2 items-center">
+      {melds.map((meld, mi) => {
+        const color = MELD_COLORS[mi % MELD_COLORS.length]
+        const w = STEP * (meld.length - 1) + 44
+        return (
+          <div key={mi} style={{ position: 'relative', width: w, height: 62, flexShrink: 0 }}>
+            {meld.map((card, ci) => (
+              <div key={card.id} style={{ position: 'absolute', left: ci * STEP, zIndex: ci + 1 }}>
+                <Card card={card} meldColor={color} small />
+              </div>
+            ))}
+          </div>
+        )
+      })}
+      {melds.length > 0 && deadwood.length > 0 && (
+        <div style={{ width: 1, height: 62, background: 'rgba(0,0,0,0.12)', flexShrink: 0 }} />
+      )}
+      {[...deadwood]
+        .sort((a, b) => b.value - a.value)
+        .map(card => <Card key={card.id} card={card} small />)
+      }
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────
 export default function GinRummy() {
   const [game, setGame] = useState(() => dealGame())
@@ -367,50 +397,10 @@ export default function GinRummy() {
         {/* Computer hand */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">Computer — {computerHand.length} cards</div>
-          {roundResult ? (() => {
-            // Show computer hand face-up with meld groups after round ends
-            const { melds: cMelds } = bestMelds(roundResult.computerHand)
-            const cMeldColor = {}
-            cMelds.forEach((meld, mi) => {
-              const color = MELD_COLORS[mi % MELD_COLORS.length]
-              meld.forEach(c => { cMeldColor[c.id] = color })
-            })
-            const cTbl = buildHandTable(roundResult.computerHand)
-            const STEP = 23
-            const ROW_W = STEP * 12 + 44
-            return (
-              <div className="flex flex-col gap-2">
-                {SUITS.map(suit => {
-                  const suitCards = cTbl[suit]
-                  if (Object.keys(suitCards).length === 0) return null
-                  return (
-                    <div key={suit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 16, flexShrink: 0 }}
-                        className={`text-xs font-bold ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>
-                        {suit}
-                      </span>
-                      <div style={{ position: 'relative', width: ROW_W, height: 62 }}>
-                        {RANKS.map((rank, ri) => {
-                          const card = suitCards[rank]
-                          if (!card) return null
-                          return (
-                            <div key={rank} style={{ position: 'absolute', left: ri * STEP, zIndex: ri + 1 }}>
-                              <Card card={card} meldColor={cMeldColor[card.id] || null} small />
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-                <div className="text-xs text-ink/50">Deadwood: {roundResult.cDW}</div>
-              </div>
-            )
-          })() : (
-            <div className="flex flex-wrap gap-1.5">
-              {computerHand.map(c => <Card key={c.id} card={c} faceDown small />)}
-            </div>
-          )}
+          {roundResult
+            ? <><HandSummary hand={roundResult.computerHand} /><div className="text-xs text-ink/50 mt-1">Deadwood: {roundResult.cDW}</div></>
+            : <div className="flex flex-wrap gap-1.5">{computerHand.map(c => <Card key={c.id} card={c} faceDown small />)}</div>
+          }
         </div>
 
         {/* Stock + Discard */}
@@ -434,14 +424,15 @@ export default function GinRummy() {
           </div>
         </div>
 
-        {/* Player hand — suit rows, rank-position overlapping (A left → K right) */}
+        {/* Player hand */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">
             Your hand — Deadwood: <span className="text-ink font-bold">{playerDW}</span>
-            {playerHand.length === 11 && <span className="text-accent ml-2">← tap a card to discard</span>}
+            {playerHand.length === 11 && phase !== 'result' && <span className="text-accent ml-2">← tap a card to discard</span>}
           </div>
-          {(() => {
+          {phase === 'result' ? <HandSummary hand={playerHand} /> : (() => {
             const tbl = buildHandTable(playerHand)
+
             const STEP = 23          // px per rank slot
             const ROW_W = STEP * 12 + 44  // 320px — fits any phone
             return (
@@ -482,6 +473,7 @@ export default function GinRummy() {
         </div>
 
         {/* Action buttons */}
+
         {phase === 'discard' && (
           <div className="flex flex-wrap gap-3">
             <button
