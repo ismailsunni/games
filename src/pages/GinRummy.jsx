@@ -315,8 +315,8 @@ export default function GinRummy() {
         msg = `Computer Gin! Computer scores ${delta} pts (25 + ${pDW}).`
         sc = { ...sc, computer: sc.computer + delta }
       } else if (pDW <= cDW) {
-        delta = cDW - pDW
-        msg = `Undercut! You score ${delta} pts (${cDW} − ${pDW}).`
+        delta = 25 + (cDW - pDW)
+        msg = `Undercut! You score ${delta} pts (25 + ${cDW} − ${pDW}).`
         sc = { ...sc, player: sc.player + delta }
       } else {
         delta = pDW - cDW
@@ -332,8 +332,8 @@ export default function GinRummy() {
       msg = `Gin! You score ${delta} pts (25 + ${cDW}).`
       sc = { ...sc, player: sc.player + delta }
     } else if (cDW <= pDW) {
-      delta = pDW - cDW
-      msg = `Undercut! Computer scores ${delta} pts (${pDW} − ${cDW}).`
+      delta = 25 + (pDW - cDW)
+      msg = `Undercut! Computer scores ${delta} pts (25 + ${pDW} − ${cDW}).`
       sc = { ...sc, computer: sc.computer + delta }
     } else {
       delta = cDW - pDW
