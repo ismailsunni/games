@@ -29,11 +29,18 @@ function findSets(hand) {
   const byRank = {}
   for (const c of hand) (byRank[c.rank] ??= []).push(c)
   const sets = []
-  for (const cards of Object.values(byRank))
+  for (const cards of Object.values(byRank)) {
     if (cards.length >= 3) {
-      sets.push(cards.slice(0, 3))
-      if (cards.length === 4) sets.push(cards.slice(0, 4))
+      // Generate all C(n,3) combinations so any card can be left free for runs
+      for (let i = 0; i < cards.length - 2; i++)
+        for (let j = i + 1; j < cards.length - 1; j++)
+          for (let k = j + 1; k < cards.length; k++)
+            sets.push([cards[i], cards[j], cards[k]])
+      // Also allow the full 4-card set when available
+      if (cards.length === 4)
+        sets.push([...cards])
     }
+  }
   return sets
 }
 
@@ -265,14 +272,12 @@ export default function GinRummy() {
     setDrawnCardId(null)
   }
 
-  // Sort hand into 4 suit rows: ♠ ♣ ♥ ♦, each A→K
-  function sortedBySuit(hand) {
-    return SUITS.map(suit => ({
-      suit,
-      cards: hand
-        .filter(c => c.suit === suit)
-        .sort((a, b) => RANK_IDX[a.rank] - RANK_IDX[b.rank]),
-    })).filter(row => row.cards.length > 0)
+  // Build a suit→rank→card lookup for the table layout
+  function buildHandTable(hand) {
+    const table = {}
+    for (const suit of SUITS) table[suit] = {}
+    for (const card of hand) table[card.suit][card.rank] = card
+    return table
   }
 
   const canKnock = phase === 'discard' && playerDW <= 10
@@ -328,31 +333,50 @@ export default function GinRummy() {
           </div>
         </div>
 
-        {/* Player hand — 4 suit rows, A→K */}
+        {/* Player hand — table layout: suit rows × rank columns (A–K) */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">
             Your hand — Deadwood: <span className="text-ink font-bold">{playerDW}</span>
             {playerHand.length === 11 && <span className="text-accent ml-2">← select card to discard</span>}
           </div>
-          <div className="flex flex-col gap-1.5">
-            {sortedBySuit(playerHand).map(({ suit, cards }) => (
-              <div key={suit} className="flex gap-1.5 items-center">
-                <span className={`text-xs w-4 shrink-0 font-bold ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>{suit}</span>
-                <div className="flex gap-1.5 flex-wrap">
-                  {cards.map(c => (
-                    <Card
-                      key={c.id}
-                      card={c}
-                      selected={selected === c.id}
-                      meld={meldedIds.has(c.id) && selected !== c.id}
-                      newCard={drawnCardId === c.id}
-                      onClick={() => selectCard(c.id)}
-                      small
-                    />
-                  ))}
-                </div>
+          <div className="overflow-x-auto">
+            <div style={{ display: 'inline-block', minWidth: 'max-content' }}>
+              {/* Rank header row */}
+              <div style={{ display: 'flex', gap: 3, paddingLeft: 22, marginBottom: 3 }}>
+                {RANKS.map(rank => (
+                  <div key={rank} style={{ width: 44, textAlign: 'center' }} className="text-xs text-ink/30 font-medium">
+                    {rank}
+                  </div>
+                ))}
               </div>
-            ))}
+              {/* One row per suit */}
+              {(() => {
+                const tbl = buildHandTable(playerHand)
+                return SUITS.map(suit => (
+                  <div key={suit} style={{ display: 'flex', gap: 3, marginBottom: 3, alignItems: 'center' }}>
+                    <span style={{ width: 18 }} className={`text-xs font-bold shrink-0 ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>
+                      {suit}
+                    </span>
+                    {RANKS.map(rank => {
+                      const card = tbl[suit][rank]
+                      return card ? (
+                        <Card
+                          key={card.id}
+                          card={card}
+                          selected={selected === card.id}
+                          meld={meldedIds.has(card.id) && selected !== card.id}
+                          newCard={drawnCardId === card.id}
+                          onClick={() => selectCard(card.id)}
+                          small
+                        />
+                      ) : (
+                        <div key={rank} style={{ width: 44, height: 62, flexShrink: 0 }} />
+                      )
+                    })}
+                  </div>
+                ))
+              })()}
+            </div>
           </div>
         </div>
 
