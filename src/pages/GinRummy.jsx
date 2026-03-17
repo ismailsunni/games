@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 const LS_KEY = 'gin-rummy-save'
 const LS_STATS_KEY = 'gin-rummy-stats'
@@ -199,6 +199,35 @@ function Card({ card, faceDown, selected, meldColor, newCard, discarding, onClic
   )
 }
 
+// ── FlyingCard — card that animates between two screen positions ──────────────
+function FlyingCard({ card, fromRect, toRect, faceDown }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const dx = (toRect.left + toRect.width  / 2) - (fromRect.left + fromRect.width  / 2)
+    const dy = (toRect.top  + toRect.height / 2) - (fromRect.top  + fromRect.height / 2)
+    el.style.transition = 'none'
+    el.style.transform = 'translate(0,0) scale(1)'
+    el.style.opacity = '1'
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.1s 0.22s'
+      el.style.transform = `translate(${dx}px,${dy}px) scale(0.85)`
+      el.style.opacity = '0'
+    }))
+  }, [])
+  return (
+    <div ref={ref} style={{
+      position: 'fixed',
+      left: fromRect.left + (fromRect.width  - (faceDown ? 58 : 58)) / 2,
+      top:  fromRect.top  + (fromRect.height - (faceDown ? 82 : 82)) / 2,
+      zIndex: 9999, pointerEvents: 'none',
+    }}>
+      <Card card={card} faceDown={faceDown} />
+    </div>
+  )
+}
+
 // ── HandSummary — compact meld clusters + deadwood (used at round end) ───────
 function HandSummary({ hand }) {
   const { melds, deadwood } = bestMelds(hand)
@@ -237,6 +266,30 @@ export default function GinRummy() {
   const [phase, setPhase] = useState(() => _save?.phase ?? 'draw')
   const [drawnCardId, setDrawnCardId] = useState(null)   // visual only — don't persist
   const [discardingId, setDiscardingId] = useState(null) // card mid-discard-animation
+  const [flyingCards, setFlyingCards] = useState([])     // flying card overlays
+
+  // Refs for card-flight source/destination
+  const stockRef      = useRef(null)
+  const discardPileRef = useRef(null)
+  const playerHandRef  = useRef(null)
+  const compHandRef    = useRef(null)
+
+  function triggerFly(card, fromRef, toRef, faceDown, delay = 0) {
+    const fromEl = fromRef?.current
+    const toEl   = toRef?.current
+    if (!fromEl || !toEl) return
+    const id = Date.now() + Math.random()
+    const fly = () => {
+      setFlyingCards(fc => [...fc, {
+        id, card, faceDown,
+        fromRect: fromEl.getBoundingClientRect(),
+        toRect:   toEl.getBoundingClientRect(),
+      }])
+      setTimeout(() => setFlyingCards(fc => fc.filter(f => f.id !== id)), 400)
+    }
+    if (delay) setTimeout(fly, delay)
+    else fly()
+  }
   const [message, setMessage] = useState(() => _save?.message ?? 'Draw a card to start!')
   const [roundResult, setRoundResult] = useState(() => _save?.roundResult ?? null)
   const [showHelp, setShowHelp] = useState(false)
@@ -276,6 +329,9 @@ export default function GinRummy() {
     } else {
       drawn = newDiscard.pop()
     }
+    // Fly ghost from pile → player hand
+    const ghostCard = from === 'stock' ? drawn : drawn  // face-down for stock, visible for discard
+    triggerFly(ghostCard, from === 'stock' ? stockRef : discardPileRef, playerHandRef, from === 'stock')
     setGame(g => ({ ...g, playerHand: [...g.playerHand, drawn], stock: newStock, discard: newDiscard }))
     setDrawnCardId(drawn.id)
     setPhase('discard')
@@ -294,7 +350,8 @@ export default function GinRummy() {
   function doDiscard() {
     if (!selected || phase !== 'discard') return
     const card = playerHand.find(c => c.id === selected)
-    // Brief animation before removing
+    // Fly card from hand area → discard pile
+    triggerFly(card, playerHandRef, discardPileRef, false)
     setDiscardingId(selected)
     setTimeout(() => {
       const newHand = playerHand.filter(c => c.id !== selected)
@@ -305,7 +362,7 @@ export default function GinRummy() {
       setGame(g => ({ ...g, playerHand: newHand, discard: newDiscard }))
       setPhase('computer')
       setMessage('Computer is thinking...')
-      setTimeout(() => doComputerTurn(newHand, newDiscard, game.stock), 800)
+      setTimeout(() => doComputerTurn(newHand, newDiscard, game.stock), 700)
     }, 200)
   }
 
@@ -333,6 +390,16 @@ export default function GinRummy() {
     newCompHand = newCompHand.filter(c => c.id !== discarded.id)
     newDiscard.push(discarded)
 
+    // Fly: draw pile → computer hand
+    triggerFly(
+      drawFrom === 'discard' ? discardTop : discarded, // face-down for stock
+      drawFrom === 'discard' ? discardPileRef : stockRef,
+      compHandRef,
+      drawFrom === 'stock'
+    )
+    // Fly: computer hand → discard pile (delayed so it follows the draw animation)
+    triggerFly(discarded, compHandRef, discardPileRef, false, 220)
+
     const { deadwoodValue: compDW } = bestMelds(newCompHand)
 
     setGame(g => ({ ...g, computerHand: newCompHand, stock: newStock, discard: newDiscard }))
@@ -349,7 +416,7 @@ export default function GinRummy() {
       setPhase('draw')
       setMessage(compMsg + ' Your turn!')
     }
-  }, [computerHand, scores, difficulty])
+  }, [computerHand, scores, difficulty, triggerFly])
 
   // Super gin: 0 deadwood + at least one run of ≥5 cards in the same suit
   function checkSuperGin(melds, dw) {
@@ -490,7 +557,7 @@ export default function GinRummy() {
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 flex flex-col gap-5">
         {/* Computer hand */}
-        <div>
+        <div ref={compHandRef}>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">Computer — {computerHand.length} cards</div>
           {roundResult
             ? <><HandSummary hand={roundResult.computerHand} /><div className="text-xs text-ink/50 mt-1">Deadwood: {roundResult.cDW}</div></>
@@ -503,14 +570,14 @@ export default function GinRummy() {
           <div className="flex flex-col items-center gap-1">
             <div className="text-xs text-ink/40 uppercase tracking-wider">Stock ({stock.length})</div>
             {stock.length > 0
-              ? <Card faceDown onClick={() => drawCard('stock')} />
+              ? <div ref={stockRef} className="inline-block"><Card faceDown onClick={() => drawCard('stock')} /></div>
               : <div className="w-14 h-20 rounded-lg border-2 border-dashed border-ink/20 flex items-center justify-center text-ink/20 text-xs">Empty</div>
             }
           </div>
           <div className="flex flex-col items-center gap-1">
             <div className="text-xs text-ink/40 uppercase tracking-wider">Discard</div>
             {discard.length > 0
-              ? <Card key={discard.at(-1).id} card={discard.at(-1)} onClick={phase === 'draw' ? () => drawCard('discard') : undefined} newCard={true} />
+              ? <div ref={discardPileRef} className="inline-block"><Card key={discard.at(-1).id} card={discard.at(-1)} onClick={phase === 'draw' ? () => drawCard('discard') : undefined} newCard={true} /></div>
               : <div className="w-14 h-20 rounded-lg border-2 border-dashed border-ink/20" />
             }
           </div>
@@ -520,7 +587,7 @@ export default function GinRummy() {
         </div>
 
         {/* Player hand */}
-        <div>
+        <div ref={playerHandRef}>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">
             Your hand — Deadwood: <span className="text-ink font-bold">{playerDW}</span>
             {playerHand.length === 11 && phase !== 'result' && <span className="text-accent ml-2">← tap a card to discard</span>}
@@ -827,6 +894,11 @@ export default function GinRummy() {
       )}
 
       {/* Help modal */}
+      {/* Flying card overlays */}
+      {flyingCards.map(f => (
+        <FlyingCard key={f.id} card={f.card} fromRect={f.fromRect} toRect={f.toRect} faceDown={f.faceDown} />
+      ))}
+
       {showHelp && (
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4"
