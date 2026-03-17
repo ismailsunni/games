@@ -333,50 +333,45 @@ export default function GinRummy() {
           </div>
         </div>
 
-        {/* Player hand — table layout: suit rows × rank columns (A–K) */}
+        {/* Player hand — overlapping fan, one row per suit, sorted A→K */}
         <div>
           <div className="text-xs text-ink/40 uppercase tracking-wider mb-2">
             Your hand — Deadwood: <span className="text-ink font-bold">{playerDW}</span>
             {playerHand.length === 11 && <span className="text-accent ml-2">← select card to discard</span>}
           </div>
-          <div className="overflow-x-auto">
-            <div style={{ display: 'inline-block', minWidth: 'max-content' }}>
-              {/* Rank header row */}
-              <div style={{ display: 'flex', gap: 3, paddingLeft: 22, marginBottom: 3 }}>
-                {RANKS.map(rank => (
-                  <div key={rank} style={{ width: 44, textAlign: 'center' }} className="text-xs text-ink/30 font-medium">
-                    {rank}
-                  </div>
-                ))}
-              </div>
-              {/* One row per suit */}
-              {(() => {
-                const tbl = buildHandTable(playerHand)
-                return SUITS.map(suit => (
-                  <div key={suit} style={{ display: 'flex', gap: 3, marginBottom: 3, alignItems: 'center' }}>
-                    <span style={{ width: 18 }} className={`text-xs font-bold shrink-0 ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>
+          <div className="flex flex-col gap-3">
+            {(() => {
+              const tbl = buildHandTable(playerHand)
+              const CARD_W = 44
+              const CARD_H = 62
+              const STEP = 24 // px per card; 13 cards × 24 fits ~332px
+              return SUITS.map(suit => {
+                const cards = RANKS.map(rank => tbl[suit][rank]).filter(Boolean)
+                if (cards.length === 0) return null
+                const rowW = STEP * (cards.length - 1) + CARD_W
+                return (
+                  <div key={suit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 16, flexShrink: 0 }} className={`text-xs font-bold ${isRed(suit) ? 'text-red-500' : 'text-ink/50'}`}>
                       {suit}
                     </span>
-                    {RANKS.map(rank => {
-                      const card = tbl[suit][rank]
-                      return card ? (
-                        <Card
-                          key={card.id}
-                          card={card}
-                          selected={selected === card.id}
-                          meld={meldedIds.has(card.id) && selected !== card.id}
-                          newCard={drawnCardId === card.id}
-                          onClick={() => selectCard(card.id)}
-                          small
-                        />
-                      ) : (
-                        <div key={rank} style={{ width: 44, height: 62, flexShrink: 0 }} />
-                      )
-                    })}
+                    <div style={{ position: 'relative', width: rowW, height: CARD_H, flexShrink: 0 }}>
+                      {cards.map((card, idx) => (
+                        <div key={card.id} style={{ position: 'absolute', left: idx * STEP, zIndex: idx + 1 }}>
+                          <Card
+                            card={card}
+                            selected={selected === card.id}
+                            meld={meldedIds.has(card.id) && selected !== card.id}
+                            newCard={drawnCardId === card.id}
+                            onClick={() => selectCard(card.id)}
+                            small
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))
-              })()}
-            </div>
+                )
+              })
+            })()}
           </div>
         </div>
 
