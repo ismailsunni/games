@@ -120,7 +120,7 @@ function dealGame() {
 // ── Meld color palette ────────────────────────────────────────
 const MELD_COLORS = [
   { bg: '#dcfce7', border: '#16a34a', shadow: '#16a34a50' },
-  { bg: '#dbeafe', border: '#2563eb', shadow: '#2563eb50' },
+  { bg: '#ccfbf1', border: '#0d9488', shadow: '#0d948850' },
   { bg: '#f3e8ff', border: '#9333ea', shadow: '#9333ea50' },
   { bg: '#ffedd5', border: '#ea580c', shadow: '#ea580c50' },
 ]
@@ -136,9 +136,9 @@ function Card({ card, faceDown, selected, meldColor, newCard, onClick, small }) 
     }} />
   )
   const red = isRed(card.suit)
-  const bg = selected ? '#fef9c3' : newCard ? '#eff6ff' : meldColor ? meldColor.bg : 'white'
-  const borderCol = selected ? '#f59e0b' : newCard ? '#3b82f6' : meldColor ? meldColor.border : '#d4d0c8'
-  const shadow = selected ? '0 0 0 3px #f59e0b50' : meldColor ? `0 0 6px 2px ${meldColor.shadow}` : '0 1px 3px rgba(0,0,0,0.1)'
+  const bg = selected ? '#fef9c3' : newCard ? '#fff7ed' : meldColor ? meldColor.bg : 'white'
+  const borderCol = selected ? '#f59e0b' : newCard ? '#d97706' : meldColor ? meldColor.border : '#d4d0c8'
+  const shadow = selected ? '0 0 0 3px #f59e0b50' : newCard ? '0 0 6px 2px #d9770660' : meldColor ? `0 0 6px 2px ${meldColor.shadow}` : '0 1px 3px rgba(0,0,0,0.1)'
   return (
     <div onClick={onClick} style={{
       width: sz.w, height: sz.h, borderRadius: 6, flexShrink: 0,
@@ -224,7 +224,11 @@ export default function GinRummy() {
 
   function selectCard(cardId) {
     if (phase !== 'discard') return
-    setSelected(prev => prev === cardId ? null : cardId)
+    if (selected === cardId) {
+      doDiscard()   // second tap = discard immediately
+    } else {
+      setSelected(cardId)
+    }
   }
 
   function doDiscard() {
@@ -273,11 +277,16 @@ export default function GinRummy() {
 
     setGame(g => ({ ...g, computerHand: newCompHand, stock: newStock, discard: newDiscard }))
 
+    const fromStr = drawFrom === 'discard'
+      ? `discard (${discardTop.rank}${discardTop.suit})`
+      : 'stock'
+    const compMsg = `Computer drew from ${fromStr}, discarded ${discarded.rank}${discarded.suit}.`
+
     if (compDW <= 10) {
       setTimeout(() => resolveKnock(pHand, newCompHand, scores, false, true), 400)
     } else {
       setPhase('draw')
-      setMessage('Your turn! Draw a card.')
+      setMessage(compMsg + ' Your turn!')
     }
   }, [computerHand, scores])
 
