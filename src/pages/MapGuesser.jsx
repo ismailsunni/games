@@ -123,13 +123,13 @@ export default function MapGuesser() {
     const qMap = new Map({
       target: questionMapRef.current,
       layers: [qTileLayer],
-      interactions: defaultInteractions({ mouseWheelZoom: false, pinchZoom: false, doubleClickZoom: false }),
+      interactions: defaultInteractions(),
       controls: [],
       view: new View({
         center: fromLonLat([city.lng, city.lat]),
         zoom: zoom,
-        minZoom: zoom,
-        maxZoom: zoom,
+        minZoom: minZoom,
+        maxZoom: 19,
       }),
     })
     questionMapInstance.current = qMap
@@ -169,14 +169,13 @@ export default function MapGuesser() {
     }
   }, [roundCities, zoom])
 
-  // Sync zoom slider to question map view
+  // Sync zoom slider to question map view (only updates starting zoom, not lock)
   useEffect(() => {
     if (!questionMapInstance.current) return
     const view = questionMapInstance.current.getView()
-    view.setMinZoom(zoom)
-    view.setMaxZoom(zoom)
+    view.setMinZoom(minZoom)
     view.setZoom(zoom)
-  }, [zoom])
+  }, [zoom, minZoom])
 
   // Update basemap tile URLs when basemap changes
   useEffect(() => {
