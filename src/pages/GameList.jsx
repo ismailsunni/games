@@ -2,9 +2,16 @@ const games = [
   {
     id: 'tictactoe',
     name: 'Tic-Tac-Toe',
-    description: 'Configurable board size (2×2 to 10×10) and win length. Play against Easy, Medium, or Hard AI.',
+    description: 'Configurable board size (3×3 to 10×10) and win length. Play against Easy, Medium, or Hard AI.',
     emoji: '⭕',
     hash: '#/tictactoe',
+  },
+  {
+    id: 'tictactwo',
+    name: 'Tic-Tac-Two',
+    description: 'Tic-Tac-Toe on a 2×2 board. Get 2 in a row to win. It\'s a dumb game — by design.',
+    emoji: '✌️',
+    hash: '#/tictactwo',
   },
   {
     id: 'tictactoe3d',

@@ -49,7 +49,7 @@ const DIFFICULTIES = ['Easy', 'Medium', 'Hard']
 
 export default function TicTacToe() {
   const saved = loadState()
-  const [boardSize,    setBoardSize]    = useState(saved?.boardSize    ?? 3)
+  const [boardSize,    setBoardSize]    = useState(Math.max(3, saved?.boardSize ?? 3))
   const [winLength,    setWinLength]    = useState(saved?.winLength    ?? 3)
   const [difficulty,   setDifficulty]   = useState(saved?.difficulty   ?? 'Hard')
   const [computerFirst,setComputerFirst]= useState(saved?.computerFirst ?? false)
@@ -197,7 +197,7 @@ export default function TicTacToe() {
         <div className="w-full bg-canvas rounded-xl p-4 border border-ink/10 flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <span className="text-sm text-ink/70 w-24 shrink-0">Board size:</span>
-            <input type="range" min={2} max={10} value={boardSize} onChange={handleBoardSizeChange} className="flex-1 accent-accent" />
+            <input type="range" min={3} max={10} value={boardSize} onChange={handleBoardSizeChange} className="flex-1 accent-accent" />
             <span className="text-sm font-medium text-ink w-16 text-right">{boardSize}×{boardSize}</span>
           </div>
           <div className="flex items-center gap-3">
