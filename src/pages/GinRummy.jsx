@@ -618,7 +618,7 @@ export default function GinRummy() {
   })() : null
   // Use selected card's result when available, else best-possible
   const _eff = _postDiscard ?? _bestPostDiscard
-  const canKnock    = !!_eff && _eff.deadwoodValue <= 10
+  const canKnock    = !!_eff && _eff.deadwoodValue <= 10 && _eff.deadwoodValue > 0
   const canGin      = !!_eff && _eff.deadwoodValue === 0
   const canSuperGin = canGin && checkSuperGin(_eff.melds, 0)
 
