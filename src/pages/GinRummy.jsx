@@ -406,10 +406,32 @@ export default function GinRummy() {
   }
 
   function doKnock() {
-    if (phase !== 'discard' || !selected) return
-    // Always discard the selected card first, then evaluate the 10-card hand
-    const card = playerHand.find(c => c.id === selected)
-    const finalHand = playerHand.filter(c => c.id !== selected)
+    if (phase !== 'discard') return
+    let cardToDiscard
+    if (selected) {
+      cardToDiscard = playerHand.find(c => c.id === selected)
+    } else {
+      // Auto-pick optimal discard: card whose removal gives lowest deadwood
+      let bestDW = Infinity
+      for (const card of playerHand) {
+        const { deadwoodValue: dw } = bestMelds(playerHand.filter(c => c.id !== card.id))
+        if (dw < bestDW) { bestDW = dw; cardToDiscard = card }
+      }
+    }
+    if (!cardToDiscard) return
+    // Fly animation from card's position → discard pile
+    const cardFromEl = cardEls.current[cardToDiscard.id]
+    const toEl = discardPileRef.current
+    if (cardFromEl && toEl) {
+      const id = Date.now() + Math.random()
+      setFlyingCards(fc => [...fc, {
+        id, card: cardToDiscard, faceDown: false,
+        fromRect: cardFromEl.getBoundingClientRect(),
+        toRect: toEl.getBoundingClientRect(),
+      }])
+      setTimeout(() => setFlyingCards(fc => fc.filter(f => f.id !== id)), 400)
+    }
+    const finalHand = playerHand.filter(c => c.id !== cardToDiscard.id)
     resolveKnock(finalHand, computerHand, scores, false)
   }
 
@@ -573,9 +595,20 @@ export default function GinRummy() {
   const _postDiscard = (phase === 'discard' && selected)
     ? bestMelds(playerHand.filter(c => c.id !== selected))
     : null
-  const canKnock = !!_postDiscard && _postDiscard.deadwoodValue <= 10
-  const canGin   = !!_postDiscard && _postDiscard.deadwoodValue === 0
-  const canSuperGin = canGin && checkSuperGin(_postDiscard.melds, 0)
+  // Best possible result across ALL cards (for pre-selection hint)
+  const _bestPostDiscard = phase === 'discard' ? (() => {
+    let best = { card: null, deadwoodValue: Infinity, melds: [] }
+    for (const card of playerHand) {
+      const r = bestMelds(playerHand.filter(c => c.id !== card.id))
+      if (r.deadwoodValue < best.deadwoodValue) best = { ...r, card }
+    }
+    return best
+  })() : null
+  // Use selected card's result when available, else best-possible
+  const _eff = _postDiscard ?? _bestPostDiscard
+  const canKnock    = !!_eff && _eff.deadwoodValue <= 10
+  const canGin      = !!_eff && _eff.deadwoodValue === 0
+  const canSuperGin = canGin && checkSuperGin(_eff.melds, 0)
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
@@ -696,7 +729,7 @@ export default function GinRummy() {
                 onClick={doKnock}
                 className="px-6 py-2 bg-accent text-paper font-medium rounded-lg hover:bg-accent/80 transition-colors"
               >
-                Knock ({_postDiscard.deadwoodValue} DW)
+                Knock ({_eff.deadwoodValue} DW)
               </button>
             )}
             {canSuperGin && (
