@@ -314,9 +314,14 @@ export default function GinRummy() {
   const [showHelp, setShowHelp] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
+  const [showCounting, setShowCounting] = useState(false)
   const [stats, setStats] = useState(() => loadStats())
   // 'home' = landing page, 'playing' = in-game
   const [screen, setScreen] = useState(() => _save ? 'playing' : 'home')
+  const [cardCounting, setCardCounting] = useState(() => _save?.cardCounting ?? false)
+  // Per-round tracking (not persisted)
+  const [discardHistory, setDiscardHistory] = useState(new Set()) // all card ids ever discarded
+  const [compPickedIds, setCompPickedIds] = useState(new Set())   // comp drew these from discard
   const [difficulty, setDifficulty] = useState(() => _save?.difficulty ?? 'medium')
   const [targetScore, setTargetScore] = useState(() => _save?.targetScore ?? 100)
 
@@ -324,7 +329,7 @@ export default function GinRummy() {
   useEffect(() => {
     if (screen !== 'playing') return  // don't save while not in game
     localStorage.setItem(LS_KEY, JSON.stringify({
-      game, phase, message, roundResult, difficulty, targetScore
+      game, phase, message, roundResult, difficulty, targetScore, cardCounting
     }))
   }, [game, phase, message, roundResult, difficulty, targetScore, screen])
 
@@ -395,6 +400,7 @@ export default function GinRummy() {
     setTimeout(() => {
       const newHand = playerHand.filter(c => c.id !== selected)
       const newDiscard = [...discard, card]
+      setDiscardHistory(prev => new Set([...prev, card.id]))
       setDiscardingId(null)
       setSelected(null)
       setDrawnCardId(null)
@@ -450,6 +456,10 @@ export default function GinRummy() {
     const discarded = computerDiscard(newCompHand, difficulty, newDiscard)
     newCompHand = newCompHand.filter(c => c.id !== discarded.id)
     newDiscard.push(discarded)
+    // Card counting: track comp's picks and discards
+    if (drawFrom === 'discard') setCompPickedIds(prev => new Set([...prev, discardTop.id]))
+    setDiscardHistory(prev => new Set([...prev, discarded.id]))
+    setCompPickedIds(prev => { const n = new Set(prev); n.delete(discarded.id); return n })
 
     // Fly: draw pile → computer hand
     triggerFly(
@@ -581,6 +591,8 @@ export default function GinRummy() {
     setRoundResult(null)
     setSelected(null)
     setDrawnCardId(null)
+    setDiscardHistory(new Set())
+    setCompPickedIds(new Set())
   }
 
   // Build a suit→rank→card lookup for the table layout
@@ -805,22 +817,70 @@ export default function GinRummy() {
 
       {/* Fixed bottom-right buttons — only during gameplay */}
       <div className={`fixed bottom-5 right-5 flex flex-col gap-2 z-40 ${screen !== 'playing' ? 'hidden' : ''}`}>
+        {cardCounting && (
+          <button
+            onClick={() => setShowCounting(v => !v)}
+            className={`w-9 h-9 rounded-full text-sm shadow-lg transition-colors ${showCounting ? 'bg-blue-500 text-white' : 'bg-ink text-paper hover:bg-ink/80'}`}
+            title="Card counting"
+          >👁</button>
+        )}
         <button
           onClick={() => setShowStats(true)}
           className="w-9 h-9 rounded-full bg-ink text-paper text-sm font-bold shadow-lg hover:bg-ink/80 transition-colors"
-          aria-label="Stats"
           title="Stats"
-        >
-          📊
-        </button>
+        >📊</button>
         <button
           onClick={() => setShowHelp(true)}
           className="w-9 h-9 rounded-full bg-ink text-paper text-sm font-bold shadow-lg hover:bg-ink/80 transition-colors"
           aria-label="Help"
-        >
-          ?
-        </button>
+        >?</button>
       </div>
+
+      {/* Card counting panel */}
+      {cardCounting && showCounting && screen === 'playing' && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
+          <div className="bg-paper border-t border-ink/10 shadow-xl max-w-2xl mx-auto p-4 pb-6">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-ink">Card Counting</h3>
+              <div className="flex gap-3 text-xs text-ink/50">
+                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-100 border border-green-500 mr-1" />Your hand</span>
+                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-orange-100 border border-orange-400 mr-1" />Comp has</span>
+                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-ink/10 border border-ink/20 mr-1" />Discarded</span>
+                <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-white border border-ink/30 mr-1" />Unknown</span>
+              </div>
+            </div>
+            {SUITS.map(suit => {
+              const red = isRed(suit)
+              return (
+                <div key={suit} className="flex items-center gap-1 mb-1">
+                  <span className={`text-xs font-bold w-4 flex-shrink-0 ${red ? 'text-red-500' : 'text-ink/60'}`}>{suit}</span>
+                  <div className="flex gap-0.5 flex-wrap">
+                    {RANKS.map(rank => {
+                      const cardId = `${rank}${suit}`
+                      const inHand    = playerHand.some(c => c.id === cardId)
+                      const compHas   = compPickedIds.has(cardId)
+                      const discarded = discardHistory.has(cardId) || discard.some((c, i) => c.id === cardId && i < discard.length - 1)
+                      const inDiscard = discard.at(-1)?.id === cardId
+                      let bg = 'bg-white border-ink/25'
+                      let textColor = 'text-ink/70'
+                      let extra = ''
+                      if (inHand)         { bg = 'bg-green-100 border-green-500'; textColor = 'text-green-800' }
+                      else if (compHas)   { bg = 'bg-orange-100 border-orange-400'; textColor = 'text-orange-700' }
+                      else if (inDiscard) { bg = 'bg-blue-50 border-blue-400'; textColor = 'text-blue-700' }
+                      else if (discarded) { bg = 'bg-ink/8 border-ink/15'; textColor = 'text-ink/30'; extra = 'line-through' }
+                      return (
+                        <span key={rank} className={`inline-flex items-center justify-center text-[10px] font-bold rounded border px-1 py-0.5 min-w-[20px] ${bg} ${textColor}`}>
+                          <span className={extra}>{rank}</span>
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Stats modal */}
       {showStats && (
@@ -954,6 +1014,15 @@ export default function GinRummy() {
               </div>
             </div>
 
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-ink/50 uppercase tracking-wider mb-2">Card Counting</p>
+              <button onClick={() => setCardCounting(v => !v)}
+                className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${cardCounting ? 'bg-blue-500 text-white' : 'bg-ink/10 text-ink/60 hover:bg-ink/20'}`}>
+                {cardCounting ? '👁 Enabled — Strong Memory' : '👁 Disabled'}
+              </button>
+              <p className="text-xs text-ink/40 mt-1">Shows which cards were discarded and what the computer likely holds</p>
+            </div>
+
             <button onClick={() => {
               clearSave()
               setShowConfig(false)
@@ -963,6 +1032,8 @@ export default function GinRummy() {
               setSelected(null)
               setRoundResult(null)
               setMessage('Draw a card to start!')
+              setDiscardHistory(new Set())
+              setCompPickedIds(new Set())
             }}
               className="w-full py-3 bg-ink text-paper font-semibold rounded-xl hover:bg-ink/80 transition-colors">
               Play →
