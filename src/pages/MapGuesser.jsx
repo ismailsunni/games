@@ -96,11 +96,12 @@ export default function MapGuesser() {
   const gTileLayerRef = useRef(null)
   const guessVectorSource = useRef(null)
   const guessLayerRef = useRef(null)
+  const cityPinSource = useRef(null)
   const mapsInitialized = useRef(false)
 
   const [basemap, setBasemap] = useState('nolabels')
-  const [zoom, setZoom] = useState(15)
-  const [minZoom, setMinZoom] = useState(13)
+  const [zoom] = useState(15)
+  const MIN_ZOOM = 10
   const [filter, setFilter] = useState('all')
   const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover
   const [roundCities, setRoundCities] = useState(null)
@@ -119,16 +120,30 @@ export default function MapGuesser() {
     })
     qTileLayerRef.current = qTileLayer
 
+    // City center pin on question map
+    const pinSource = new VectorSource()
+    cityPinSource.current = pinSource
     const city = roundCities[0]
+    const pinFeature = new Feature({ geometry: new Point(fromLonLat([city.lng, city.lat])) })
+    pinFeature.setStyle(new Style({
+      image: new CircleStyle({
+        radius: 8,
+        fill: new Fill({ color: '#f97316' }),
+        stroke: new Stroke({ color: '#fff', width: 2.5 }),
+      }),
+    }))
+    pinSource.addFeature(pinFeature)
+    const pinLayer = new VectorLayer({ source: pinSource })
+
     const qMap = new Map({
       target: questionMapRef.current,
-      layers: [qTileLayer],
+      layers: [qTileLayer, pinLayer],
       interactions: defaultInteractions(),
       controls: [],
       view: new View({
         center: fromLonLat([city.lng, city.lat]),
         zoom: zoom,
-        minZoom: minZoom,
+        minZoom: MIN_ZOOM,
         maxZoom: 19,
       }),
     })
@@ -173,9 +188,9 @@ export default function MapGuesser() {
   useEffect(() => {
     if (!questionMapInstance.current) return
     const view = questionMapInstance.current.getView()
-    view.setMinZoom(minZoom)
+    view.setMinZoom(MIN_ZOOM)
     view.setZoom(zoom)
-  }, [zoom, minZoom])
+  }, [zoom])
 
   // Update basemap tile URLs when basemap changes
   useEffect(() => {
@@ -196,6 +211,19 @@ export default function MapGuesser() {
       center: fromLonLat([city.lng, city.lat]),
       duration: 600,
     })
+    // Move city pin to new location
+    if (cityPinSource.current) {
+      cityPinSource.current.clear()
+      const pf = new Feature({ geometry: new Point(fromLonLat([city.lng, city.lat])) })
+      pf.setStyle(new Style({
+        image: new CircleStyle({
+          radius: 8,
+          fill: new Fill({ color: '#f97316' }),
+          stroke: new Stroke({ color: '#fff', width: 2.5 }),
+        }),
+      }))
+      cityPinSource.current.addFeature(pf)
+    }
     setGuessCoord(null)
     if (guessVectorSource.current) guessVectorSource.current.clear()
     if (guessMapInstance.current) {
@@ -376,30 +404,6 @@ export default function MapGuesser() {
                   </div>
                 </label>
               ))}
-            </div>
-          </div>
-
-          {/* Zoom config */}
-          <div className="w-full bg-white border border-ink/10 rounded-xl p-5">
-            <div className="text-sm font-semibold text-ink mb-1">Zoom level</div>
-            <div className="text-xs text-ink/50 mb-3">Min zoom sets the starting point — in-game slider goes from this to 19</div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-ink/60 w-6">10</span>
-              <input
-                type="range"
-                min={10}
-                max={19}
-                step={1}
-                value={minZoom}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  setMinZoom(v)
-                  setZoom(Math.max(zoom, v))
-                }}
-                className="flex-1 accent-accent"
-              />
-              <span className="text-xs text-ink/60 w-6 text-right">19</span>
-              <span className="text-xs font-mono font-semibold text-ink w-12 text-right">min: {minZoom}</span>
             </div>
           </div>
 
