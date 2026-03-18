@@ -544,20 +544,7 @@ export default function MapGuesser() {
               <option key={key} value={key}>{bm.label}</option>
             ))}
           </select>
-          {isQuestion && (
-            <div className="bg-white/90 rounded shadow px-2 py-1.5 flex items-center gap-2">
-              <input
-                type="range"
-                min={minZoom}
-                max={19}
-                step={1}
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="w-20 accent-accent"
-              />
-              <span className="text-xs font-mono text-ink w-4">{zoom}</span>
-            </div>
-          )}
+
         </div>
 
         {/* Timer countdown badge */}
