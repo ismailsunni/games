@@ -28,6 +28,66 @@ const BASEMAPS = {
   },
 }
 
+const FILTER_LABELS = {
+  all: 'All Cities',
+  capitals: 'Capital Cities',
+  indonesia: 'Indonesia',
+}
+
+const DEFAULT_STATS = {
+  all: { gamesPlayed: 0, bestScore: 0, totalScore: 0 },
+  capitals: { gamesPlayed: 0, bestScore: 0, totalScore: 0 },
+  indonesia: { gamesPlayed: 0, bestScore: 0, totalScore: 0 },
+}
+
+function loadStats() {
+  try {
+    const s = localStorage.getItem('mapguesser_stats')
+    if (!s) return JSON.parse(JSON.stringify(DEFAULT_STATS))
+    const parsed = JSON.parse(s)
+    return {
+      all: { ...DEFAULT_STATS.all, ...parsed.all },
+      capitals: { ...DEFAULT_STATS.capitals, ...parsed.capitals },
+      indonesia: { ...DEFAULT_STATS.indonesia, ...parsed.indonesia },
+    }
+  } catch {
+    return JSON.parse(JSON.stringify(DEFAULT_STATS))
+  }
+}
+
+function saveStats(stats) {
+  localStorage.setItem('mapguesser_stats', JSON.stringify(stats))
+}
+
+function loadGameState() {
+  try {
+    const s = localStorage.getItem('mapguesser_state')
+    return s ? JSON.parse(s) : null
+  } catch {
+    return null
+  }
+}
+
+function saveGameState(state) {
+  localStorage.setItem('mapguesser_state', JSON.stringify(state))
+}
+
+function clearGameState() {
+  localStorage.removeItem('mapguesser_state')
+}
+
+function scoreToEmojis(score) {
+  const pct = score / 5000
+  let emoji
+  if (pct >= 0.8) emoji = '💚'
+  else if (pct >= 0.6) emoji = '🟩'
+  else if (pct >= 0.4) emoji = '🟨'
+  else if (pct >= 0.2) emoji = '🟧'
+  else emoji = '🟥'
+  const filled = Math.min(5, Math.round(score / 1000))
+  return emoji.repeat(filled) + '⬜'.repeat(5 - filled)
+}
+
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371
   const dLat = ((lat2 - lat1) * Math.PI) / 180
@@ -109,6 +169,18 @@ export default function MapGuesser() {
   const [guessCoord, setGuessCoord] = useState(null) // [lng, lat]
   const [results, setResults] = useState([])
   const [timeLeft, setTimeLeft] = useState(ROUND_TIME)
+  const [stats, setStats] = useState(() => loadStats())
+  const [savedState, setSavedState] = useState(() => loadGameState())
+  const [shareStatus, setShareStatus] = useState(null) // null | 'copied'
+
+  // Persist game state on every relevant state change
+  useEffect(() => {
+    if (phase === 'question' || phase === 'guessing' || phase === 'result') {
+      if (roundCities) {
+        saveGameState({ filter, roundCities, currentRound, results, phase })
+      }
+    }
+  }, [phase, currentRound, results, roundCities, filter])
 
   // Init maps when game starts (roundCities first set)
   useEffect(() => {
@@ -123,7 +195,7 @@ export default function MapGuesser() {
     // City center pin on question map
     const pinSource = new VectorSource()
     cityPinSource.current = pinSource
-    const city = roundCities[0]
+    const city = roundCities[currentRound] || roundCities[0]
     const pinFeature = new Feature({ geometry: new Point(fromLonLat([city.lng, city.lat])) })
     pinFeature.setStyle(new Style({
       image: new CircleStyle({
@@ -277,9 +349,34 @@ export default function MapGuesser() {
   }, [phase, currentRound])
 
   function handleStartGame() {
+    clearGameState()
+    setSavedState(null)
+    mapsInitialized.current = false
     const pool = filterCities(filter)
     const selected = pickCities(TOTAL_ROUNDS, pool)
     setRoundCities(selected)
+    setCurrentRound(0)
+    setResults([])
+    setPhase('question')
+  }
+
+  function handleContinueGame() {
+    if (!savedState || savedState.filter !== filter) return
+    mapsInitialized.current = false
+    // Restore to question phase of current incomplete round
+    const round = savedState.phase === 'result'
+      ? savedState.currentRound + 1
+      : savedState.currentRound
+    if (round >= TOTAL_ROUNDS) {
+      setRoundCities(savedState.roundCities)
+      setResults(savedState.results)
+      setCurrentRound(TOTAL_ROUNDS - 1)
+      setPhase('gameover')
+      return
+    }
+    setRoundCities(savedState.roundCities)
+    setResults(savedState.results)
+    setCurrentRound(round)
     setPhase('question')
   }
 
@@ -338,6 +435,17 @@ export default function MapGuesser() {
   function handleNext() {
     const nextRound = currentRound + 1
     if (nextRound >= TOTAL_ROUNDS) {
+      // Update stats before going to gameover
+      const finalScore = results.reduce((sum, r) => sum + r.score, 0)
+      const newStats = loadStats()
+      const modeStats = newStats[filter]
+      modeStats.gamesPlayed += 1
+      if (finalScore > modeStats.bestScore) modeStats.bestScore = finalScore
+      modeStats.totalScore += finalScore
+      saveStats(newStats)
+      setStats(newStats)
+      clearGameState()
+      setSavedState(null)
       setPhase('gameover')
     } else {
       setCurrentRound(nextRound)
@@ -346,7 +454,30 @@ export default function MapGuesser() {
   }
 
   function handlePlayAgain() {
+    clearGameState()
     window.location.reload()
+  }
+
+  function handleShare() {
+    const filterLabel = FILTER_LABELS[filter]
+    const lines = results.map((r, i) =>
+      `Round ${i + 1}: ${r.city} ${scoreToEmojis(r.score)} ${r.score.toLocaleString()} pts`
+    )
+    const text = [
+      `🗺️ Map Guesser — ${filterLabel}`,
+      ...lines,
+      `Total: ${totalScore.toLocaleString()} / 25,000`,
+      'Play: https://ismailsunni.github.io/games/#/mapguesser',
+    ].join('\n')
+
+    if (navigator.share) {
+      navigator.share({ text }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        setShareStatus('copied')
+        setTimeout(() => setShareStatus(null), 2000)
+      }).catch(() => {})
+    }
   }
 
   const totalScore = results.reduce((sum, r) => sum + r.score, 0)
@@ -361,6 +492,13 @@ export default function MapGuesser() {
 
   // ── Lobby screen ──────────────────────────────────────────────────────────
   if (isLobby) {
+    const filterOptions = [
+      { value: 'all', label: 'All cities', desc: `${cities.length} cities worldwide` },
+      { value: 'capitals', label: 'Capital cities only', desc: `${cities.filter(c => c.capital).length} world capitals` },
+      { value: 'indonesia', label: 'Indonesia only', desc: `${cities.filter(c => c.indonesia).length} cities & kabupatens` },
+    ]
+    const hasContinue = savedState && savedState.filter === filter
+
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
         <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
@@ -377,42 +515,56 @@ export default function MapGuesser() {
           <div className="w-full bg-white border border-ink/10 rounded-xl p-5">
             <div className="text-sm font-semibold text-ink mb-3">City set</div>
             <div className="flex flex-col gap-2">
-              {[
-                { value: 'all', label: 'All cities', desc: `${cities.length} cities worldwide` },
-                { value: 'capitals', label: 'Capital cities only', desc: `${cities.filter(c => c.capital).length} world capitals` },
-                { value: 'indonesia', label: 'Indonesia only', desc: `${cities.filter(c => c.indonesia).length} cities & kabupatens` },
-              ].map((opt) => (
-                <label
-                  key={opt.value}
-                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${
-                    filter === opt.value
-                      ? 'border-accent bg-accent/5'
-                      : 'border-ink/10 hover:border-accent/40'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="filter"
-                    value={opt.value}
-                    checked={filter === opt.value}
-                    onChange={() => setFilter(opt.value)}
-                    className="mt-0.5 accent-accent"
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-ink">{opt.label}</div>
-                    <div className="text-xs text-ink/50">{opt.desc}</div>
-                  </div>
-                </label>
-              ))}
+              {filterOptions.map((opt) => {
+                const modeStats = stats[opt.value]
+                return (
+                  <label
+                    key={opt.value}
+                    className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${
+                      filter === opt.value
+                        ? 'border-accent bg-accent/5'
+                        : 'border-ink/10 hover:border-accent/40'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="filter"
+                      value={opt.value}
+                      checked={filter === opt.value}
+                      onChange={() => setFilter(opt.value)}
+                      className="mt-0.5 accent-accent"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-ink">{opt.label}</div>
+                      <div className="text-xs text-ink/50">{opt.desc}</div>
+                      {modeStats.gamesPlayed > 0 && (
+                        <div className="text-xs text-ink/40 mt-0.5">
+                          {modeStats.gamesPlayed} {modeStats.gamesPlayed === 1 ? 'game' : 'games'} · best {modeStats.bestScore.toLocaleString()} pts
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                )
+              })}
             </div>
           </div>
 
-          <button
-            onClick={handleStartGame}
-            className="w-full bg-accent text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity text-base"
-          >
-            Start Game →
-          </button>
+          <div className="w-full flex flex-col gap-3">
+            {hasContinue && (
+              <button
+                onClick={handleContinueGame}
+                className="w-full border border-accent text-accent font-semibold py-3 px-6 rounded-lg hover:bg-accent/5 transition-colors text-base"
+              >
+                Continue game (Round {savedState.currentRound + 1})
+              </button>
+            )}
+            <button
+              onClick={handleStartGame}
+              className="w-full bg-accent text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity text-base"
+            >
+              {hasContinue ? 'New Game' : 'Start Game →'}
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -476,6 +628,20 @@ export default function MapGuesser() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Share button */}
+          <div className="mb-4">
+            <button
+              onClick={handleShare}
+              className="w-full border border-ink/20 text-ink font-medium py-3 px-6 rounded-lg hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2"
+            >
+              {shareStatus === 'copied' ? (
+                <>✓ Copied!</>
+              ) : (
+                <>📋 Share results</>
+              )}
+            </button>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
