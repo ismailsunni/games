@@ -18,17 +18,21 @@ import cities from '../data/cities'
 const TOTAL_ROUNDS = 5
 
 const BASEMAPS = {
-  street: {
-    label: 'Street',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  nolabels: {
+    label: 'Streets (no labels)',
+    url: 'https://basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
+  },
+  toner: {
+    label: 'Toner (no labels)',
+    url: 'https://tiles.stadiamaps.com/tiles/stamen_toner_background/{z}/{x}/{y}.png',
   },
   satellite: {
     label: 'Satellite',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   },
-  light: {
-    label: 'Light',
-    url: 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+  street: {
+    label: 'Street (with labels)',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   },
 }
 
@@ -93,7 +97,7 @@ export default function MapGuesser() {
   const guessVectorSource = useRef(null)
   const guessLayerRef = useRef(null)
 
-  const [basemap, setBasemap] = useState('street')
+  const [basemap, setBasemap] = useState('nolabels')
   const [phase, setPhase] = useState('question') // question | guessing | result | gameover
   const [roundCities] = useState(() => pickCities(TOTAL_ROUNDS))
   const [currentRound, setCurrentRound] = useState(0)
@@ -103,7 +107,7 @@ export default function MapGuesser() {
   // Init both maps once
   useEffect(() => {
     const qTileLayer = new TileLayer({
-      source: new XYZ({ url: BASEMAPS.street.url }),
+      source: new XYZ({ url: BASEMAPS.nolabels.url }),
     })
     qTileLayerRef.current = qTileLayer
 
@@ -115,15 +119,15 @@ export default function MapGuesser() {
       controls: [],
       view: new View({
         center: fromLonLat([city.lng, city.lat]),
-        zoom: 13,
-        minZoom: 13,
-        maxZoom: 13,
+        zoom: 19,
+        minZoom: 19,
+        maxZoom: 19,
       }),
     })
     questionMapInstance.current = qMap
 
     const gTileLayer = new TileLayer({
-      source: new XYZ({ url: BASEMAPS.street.url }),
+      source: new XYZ({ url: BASEMAPS.nolabels.url }),
     })
     gTileLayerRef.current = gTileLayer
 
@@ -360,7 +364,7 @@ export default function MapGuesser() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-paper font-body overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-paper font-body overflow-hidden">
       {/* Header */}
       <header className="flex-none border-b border-ink/10 bg-canvas px-4 py-2 flex items-center gap-3 z-10">
         <a href="#/" className="text-accent hover:underline text-sm font-medium whitespace-nowrap">← Back</a>
@@ -418,60 +422,19 @@ export default function MapGuesser() {
 
         {/* Guess map */}
         <div
-          className="absolute inset-0 flex flex-col"
+          className="absolute inset-0"
           style={{
             visibility: isQuestion ? 'hidden' : 'visible',
             pointerEvents: isQuestion ? 'none' : 'auto',
           }}
         >
-          <div ref={guessMapRef} className={`flex-1 ${isGuessing ? 'cursor-crosshair' : ''}`} />
-
-          {/* Bottom action bar inside guess area */}
-          <div className="flex-none bg-canvas border-t border-ink/10 px-4 py-3">
-            {isGuessing && (
-              <div className="flex items-center gap-3 max-w-lg mx-auto">
-                <div className="flex-1 text-sm text-ink/60">
-                  {guessCoord
-                    ? `Pin placed — click to move`
-                    : 'Click the map to place your guess'}
-                </div>
-                <button
-                  onClick={handleConfirm}
-                  disabled={!guessCoord}
-                  className="bg-accent text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity text-sm"
-                >
-                  Confirm ✓
-                </button>
-              </div>
-            )}
-
-            {isResult && currentResult && (
-              <div className="flex items-center gap-3 max-w-lg mx-auto">
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-ink text-sm truncate">
-                    {currentResult.city}, {currentResult.country}
-                  </div>
-                  <div className="text-xs text-ink/60">
-                    {currentResult.distKm.toLocaleString()} km away · +{currentResult.score.toLocaleString()} pts
-                  </div>
-                </div>
-                <button
-                  onClick={handleNext}
-                  className="bg-accent text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition-opacity text-sm whitespace-nowrap"
-                >
-                  {currentRound + 1 >= TOTAL_ROUNDS ? 'Results →' : 'Next →'}
-                </button>
-              </div>
-            )}
-          </div>
+          <div ref={guessMapRef} className={`w-full h-full ${isGuessing ? 'cursor-crosshair' : ''}`} />
         </div>
-      </div>
 
-      {/* Question bottom bar */}
-      {isQuestion && (
-        <div className="flex-none bg-canvas border-t border-ink/10 px-4 py-3">
-          <div className="flex items-center justify-between max-w-lg mx-auto">
-            <div className="text-sm text-ink/60">Where is this city?</div>
+        {/* Floating: question CTA */}
+        {isQuestion && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3">
+            <span className="text-sm text-ink/70">Where is this city?</span>
             <button
               onClick={handleMakeGuess}
               className="bg-accent text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition-opacity text-sm"
@@ -479,8 +442,44 @@ export default function MapGuesser() {
               Make your guess →
             </button>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Floating: confirm guess */}
+        {isGuessing && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3">
+            <span className="text-sm text-ink/70">
+              {guessCoord ? 'Pin placed — click to move' : 'Click the map to place your guess'}
+            </span>
+            <button
+              onClick={handleConfirm}
+              disabled={!guessCoord}
+              className="bg-accent text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity text-sm"
+            >
+              Confirm ✓
+            </button>
+          </div>
+        )}
+
+        {/* Floating: result + next */}
+        {isResult && currentResult && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3 max-w-sm w-full">
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-ink text-sm truncate">
+                {currentResult.city}, {currentResult.country}
+              </div>
+              <div className="text-xs text-ink/60">
+                {currentResult.distKm.toLocaleString()} km away · +{currentResult.score.toLocaleString()} pts
+              </div>
+            </div>
+            <button
+              onClick={handleNext}
+              className="bg-accent text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition-opacity text-sm whitespace-nowrap"
+            >
+              {currentRound + 1 >= TOTAL_ROUNDS ? 'Results →' : 'Next →'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
