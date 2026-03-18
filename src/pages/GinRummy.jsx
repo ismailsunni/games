@@ -842,7 +842,6 @@ export default function GinRummy() {
           <div className="bg-paper border-t border-ink/10 shadow-xl max-w-2xl mx-auto p-4 pb-6">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-sm font-bold text-ink">Card Counting</h3>
-              <button onClick={() => setShowCounting(false)} className="text-xs text-ink/50 hover:text-ink px-2 py-1 rounded bg-ink/5 hover:bg-ink/10 transition-colors">Hide ↓</button>
               <div className="flex gap-3 text-xs text-ink/50">
                 <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-100 border border-green-500 mr-1" />Your hand</span>
                 <span><span className="inline-block w-2.5 h-2.5 rounded-sm bg-orange-100 border border-orange-400 mr-1" />Comp has</span>
