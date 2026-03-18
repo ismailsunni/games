@@ -22,10 +22,6 @@ const BASEMAPS = {
     label: 'Streets (no labels)',
     url: 'https://basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
   },
-  toner: {
-    label: 'Toner (no labels)',
-    url: 'https://tiles.stadiamaps.com/tiles/stamen_toner_background/{z}/{x}/{y}.png',
-  },
   satellite: {
     label: 'Satellite',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -98,6 +94,7 @@ export default function MapGuesser() {
   const guessLayerRef = useRef(null)
 
   const [basemap, setBasemap] = useState('nolabels')
+  const [zoom, setZoom] = useState(19)
   const [phase, setPhase] = useState('question') // question | guessing | result | gameover
   const [roundCities] = useState(() => pickCities(TOTAL_ROUNDS))
   const [currentRound, setCurrentRound] = useState(0)
@@ -119,9 +116,9 @@ export default function MapGuesser() {
       controls: [],
       view: new View({
         center: fromLonLat([city.lng, city.lat]),
-        zoom: 19,
-        minZoom: 19,
-        maxZoom: 19,
+        zoom: zoom,
+        minZoom: zoom,
+        maxZoom: zoom,
       }),
     })
     questionMapInstance.current = qMap
@@ -170,6 +167,15 @@ export default function MapGuesser() {
       gTileLayerRef.current.setSource(new XYZ({ url }))
     }
   }, [basemap])
+
+  // Update question map zoom when slider changes
+  useEffect(() => {
+    if (!questionMapInstance.current) return
+    const view = questionMapInstance.current.getView()
+    view.setMinZoom(zoom)
+    view.setMaxZoom(zoom)
+    view.setZoom(zoom)
+  }, [zoom])
 
   // Animate question map to new city on round change
   useEffect(() => {
@@ -392,21 +398,31 @@ export default function MapGuesser() {
 
       {/* Map area */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Basemap switcher */}
-        <div className="absolute top-3 right-3 z-30 flex flex-col gap-1">
-          {Object.entries(BASEMAPS).map(([key, bm]) => (
-            <button
-              key={key}
-              onClick={() => setBasemap(key)}
-              className={`text-xs px-2 py-1 rounded shadow font-medium transition-colors ${
-                basemap === key
-                  ? 'bg-accent text-white'
-                  : 'bg-white/90 text-ink hover:bg-white'
-              }`}
-            >
-              {bm.label}
-            </button>
-          ))}
+        {/* Top-right controls: basemap dropdown + zoom slider */}
+        <div className="absolute top-3 right-3 z-30 flex flex-col gap-2 items-end">
+          <select
+            value={basemap}
+            onChange={(e) => setBasemap(e.target.value)}
+            className="text-xs px-2 py-1.5 rounded shadow font-medium bg-white/90 text-ink border-0 cursor-pointer"
+          >
+            {Object.entries(BASEMAPS).map(([key, bm]) => (
+              <option key={key} value={key}>{bm.label}</option>
+            ))}
+          </select>
+          {/* Zoom slider (testing only) */}
+          <div className="bg-white/90 rounded shadow px-2 py-1.5 flex items-center gap-2">
+            <span className="text-xs text-ink/60">zoom</span>
+            <input
+              type="range"
+              min={10}
+              max={19}
+              step={1}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-24 accent-accent"
+            />
+            <span className="text-xs font-mono text-ink w-4">{zoom}</span>
+          </div>
         </div>
 
         {/* Question map */}
@@ -433,13 +449,12 @@ export default function MapGuesser() {
 
         {/* Floating: question CTA */}
         {isQuestion && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3">
-            <span className="text-sm text-ink/70">Where is this city?</span>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3">
             <button
               onClick={handleMakeGuess}
               className="bg-accent text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition-opacity text-sm"
             >
-              Make your guess →
+              Guess the city →
             </button>
           </div>
         )}
