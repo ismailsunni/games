@@ -27,6 +27,13 @@ const games = [
     emoji: '🃏',
     hash: '#/ginrummy',
   },
+  {
+    id: 'mapguesser',
+    name: 'Map Guesser',
+    description: 'Zoom in on a mystery city. Guess where it is on the world map. Score based on distance.',
+    emoji: '🗺️',
+    hash: '#/mapguesser',
+  },
 ]
 
 export default function GameList() {
