@@ -40,8 +40,10 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.asin(Math.sqrt(a))
 }
 
-function calcScore(distKm) {
-  return Math.max(0, Math.round(5000 * (1 - distKm / 10000)))
+function calcScore(distKm, isIndonesia = false) {
+  // Indonesia: max meaningful distance ~2000km (Sabang–Merauke ~5200km, but granularity matters more)
+  const maxDist = isIndonesia ? 2000 : 10000
+  return Math.max(0, Math.round(5000 * (1 - distKm / maxDist)))
 }
 
 function filterCities(filter) {
@@ -97,7 +99,8 @@ export default function MapGuesser() {
   const mapsInitialized = useRef(false)
 
   const [basemap, setBasemap] = useState('nolabels')
-  const [zoom] = useState(15)
+  const [zoom, setZoom] = useState(15)
+  const [minZoom, setMinZoom] = useState(13)
   const [filter, setFilter] = useState('all')
   const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover
   const [roundCities, setRoundCities] = useState(null)
@@ -141,14 +144,16 @@ export default function MapGuesser() {
     const vLayer = new VectorLayer({ source: vSource })
     guessLayerRef.current = vLayer
 
+    const indonesiaMode = filter === 'indonesia'
     const gMap = new Map({
       target: guessMapRef.current,
       layers: [gTileLayer, vLayer],
       interactions: defaultInteractions(),
       controls: [],
       view: new View({
-        center: fromLonLat([0, 20]),
-        zoom: 2,
+        center: fromLonLat(indonesiaMode ? [118, -2.5] : [0, 20]),
+        zoom: indonesiaMode ? 4 : 2,
+        minZoom: indonesiaMode ? 4 : undefined,
       }),
     })
     guessMapInstance.current = gMap
@@ -163,6 +168,15 @@ export default function MapGuesser() {
       gMap.setTarget(null)
     }
   }, [roundCities, zoom])
+
+  // Sync zoom slider to question map view
+  useEffect(() => {
+    if (!questionMapInstance.current) return
+    const view = questionMapInstance.current.getView()
+    view.setMinZoom(zoom)
+    view.setMaxZoom(zoom)
+    view.setZoom(zoom)
+  }, [zoom])
 
   // Update basemap tile URLs when basemap changes
   useEffect(() => {
@@ -186,9 +200,10 @@ export default function MapGuesser() {
     setGuessCoord(null)
     if (guessVectorSource.current) guessVectorSource.current.clear()
     if (guessMapInstance.current) {
+      const indonesiaMode = filter === 'indonesia'
       guessMapInstance.current.getView().animate({
-        center: fromLonLat([0, 20]),
-        zoom: 2,
+        center: fromLonLat(indonesiaMode ? [118, -2.5] : [0, 20]),
+        zoom: indonesiaMode ? 4 : 2,
         duration: 400,
       })
     }
@@ -249,7 +264,7 @@ export default function MapGuesser() {
     if (!guessCoord) return
     const city = roundCities[currentRound]
     const distKm = haversineKm(guessCoord[1], guessCoord[0], city.lat, city.lng)
-    const score = calcScore(distKm)
+    const score = calcScore(distKm, filter === 'indonesia')
 
     const src = guessVectorSource.current
     const actualCoord = fromLonLat([city.lng, city.lat])
@@ -362,6 +377,30 @@ export default function MapGuesser() {
                   </div>
                 </label>
               ))}
+            </div>
+          </div>
+
+          {/* Zoom config */}
+          <div className="w-full bg-white border border-ink/10 rounded-xl p-5">
+            <div className="text-sm font-semibold text-ink mb-1">Zoom level</div>
+            <div className="text-xs text-ink/50 mb-3">Min zoom sets the starting point — in-game slider goes from this to 19</div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-ink/60 w-6">10</span>
+              <input
+                type="range"
+                min={10}
+                max={19}
+                step={1}
+                value={minZoom}
+                onChange={(e) => {
+                  const v = Number(e.target.value)
+                  setMinZoom(v)
+                  setZoom(Math.max(zoom, v))
+                }}
+                className="flex-1 accent-accent"
+              />
+              <span className="text-xs text-ink/60 w-6 text-right">19</span>
+              <span className="text-xs font-mono font-semibold text-ink w-12 text-right">min: {minZoom}</span>
             </div>
           </div>
 
@@ -495,7 +534,7 @@ export default function MapGuesser() {
 
       {/* Map area */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Top-right controls: basemap dropdown */}
+        {/* Top-right controls: basemap dropdown + zoom slider */}
         <div className="absolute top-3 right-3 z-30 flex flex-col gap-2 items-end">
           <select
             value={basemap}
@@ -506,6 +545,20 @@ export default function MapGuesser() {
               <option key={key} value={key}>{bm.label}</option>
             ))}
           </select>
+          {isQuestion && (
+            <div className="bg-white/90 rounded shadow px-2 py-1.5 flex items-center gap-2">
+              <input
+                type="range"
+                min={minZoom}
+                max={19}
+                step={1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-20 accent-accent"
+              />
+              <span className="text-xs font-mono text-ink w-4">{zoom}</span>
+            </div>
+          )}
         </div>
 
         {/* Timer countdown badge */}
