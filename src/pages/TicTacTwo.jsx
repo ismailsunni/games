@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { easyMove, mediumMove, hardMove } from '../utils/tictactoeAI'
+import { easyMove } from '../utils/tictactoeAI'
 
 const BOARD_SIZE = 2
 const WIN_LENGTH = 2
@@ -44,11 +44,8 @@ function loadState() {
   return null
 }
 
-const DIFFICULTIES = ['Easy', 'Medium', 'Hard']
-
 export default function TicTacTwo() {
   const saved = loadState()
-  const [difficulty,    setDifficulty]    = useState(saved?.difficulty    ?? 'Hard')
   const [computerFirst, setComputerFirst] = useState(saved?.computerFirst ?? false)
   const [squares,       setSquares]       = useState(saved?.squares       ?? Array(4).fill(null))
   const [gaveUp,        setGaveUp]        = useState(false)
@@ -67,18 +64,15 @@ export default function TicTacTwo() {
   const playerTurn       = !effectiveGameOver && !thinking && !isComputerMove
 
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify({ difficulty, computerFirst, squares }))
-  }, [difficulty, computerFirst, squares])
+    localStorage.setItem(LS_KEY, JSON.stringify({ computerFirst, squares }))
+  }, [computerFirst, squares])
 
   useEffect(() => {
     if (!gameOver && isComputerMove && !pendingRef.current) {
       pendingRef.current = true
       setThinking(true)
       const timer = setTimeout(() => {
-        let move = -1
-        if (difficulty === 'Easy') move = easyMove([...squares], BOARD_SIZE)
-        else if (difficulty === 'Medium') move = mediumMove([...squares], BOARD_SIZE, WIN_LENGTH)
-        else move = hardMove([...squares], BOARD_SIZE, WIN_LENGTH)
+        let move = easyMove([...squares], BOARD_SIZE)
         if (move !== -1) {
           const next = [...squares]
           next[move] = computerSymbol
@@ -105,11 +99,6 @@ export default function TicTacTwo() {
     setSquares(Array(4).fill(null))
   }
 
-  function handleDifficultyChange(d) {
-    setDifficulty(d)
-    reset()
-  }
-
   function handleComputerFirst(val) {
     setComputerFirst(val)
     if (!val) return
@@ -118,10 +107,7 @@ export default function TicTacTwo() {
     setThinking(true)
     const emptyBoard = Array(4).fill(null)
     setTimeout(() => {
-      let move = -1
-      if (difficulty === 'Easy') move = easyMove([...emptyBoard], BOARD_SIZE)
-      else if (difficulty === 'Medium') move = mediumMove([...emptyBoard], BOARD_SIZE, WIN_LENGTH)
-      else move = hardMove([...emptyBoard], BOARD_SIZE, WIN_LENGTH)
+      let move = easyMove([...emptyBoard], BOARD_SIZE)
       if (move !== -1) {
         const next = [...emptyBoard]
         next[move] = 'X'
@@ -138,7 +124,7 @@ export default function TicTacTwo() {
   else if (winner === computerSymbol) status = 'Computer wins 😔'
   else if (draw) status = "It's a draw 🤝"
   else if (thinking) status = 'Computer thinking...'
-  else status = `Your turn — ${difficulty} mode`
+  else status = 'Your turn'
 
   return (
     <div className="min-h-screen bg-paper font-body">
@@ -151,22 +137,7 @@ export default function TicTacTwo() {
       </header>
 
       <main className="max-w-xl mx-auto px-6 py-10 flex flex-col items-center gap-8">
-        {/* Settings — difficulty only, no board/win config */}
-        <div className="w-full bg-canvas rounded-xl p-4 border border-ink/10 flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-ink/70 w-24 shrink-0">Difficulty:</span>
-            <div className="flex rounded-lg border border-ink/20 overflow-hidden">
-              {DIFFICULTIES.map(d => (
-                <button key={d} onClick={() => handleDifficultyChange(d)}
-                  className={['px-4 py-1.5 text-sm font-medium transition-colors',
-                    difficulty === d ? 'bg-ink text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="text-xs text-ink/40">Fixed 2×2 board · first to get 2 in a row wins</p>
-        </div>
+        <p className="text-xs text-ink/40">Fixed 2×2 board · first to get 2 in a row wins</p>
 
         {/* Status */}
         <p className="text-lg font-medium text-ink/70">{status}</p>

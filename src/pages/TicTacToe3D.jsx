@@ -358,7 +358,7 @@ export default function TicTacToe3D() {
       <header className="border-b border-ink/10 bg-canvas px-6 py-6">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <a href="#/" className="text-ink/50 hover:text-accent transition-colors text-sm font-medium">← Back</a>
-          <h1 className="font-display text-2xl font-bold text-ink">3D Tic-Tac-Toe</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">Tic-Tac-Three-D</h1>
         </div>
       </header>
 

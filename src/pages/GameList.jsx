@@ -9,13 +9,13 @@ const games = [
   {
     id: 'tictactwo',
     name: 'Tic-Tac-Two',
-    description: 'Tic-Tac-Toe on a 2×2 board. Get 2 in a row to win. It\'s a dumb game — by design.',
+    description: 'Play the game you win. 2×2 board, 2 in a row. Simple as that.',
     emoji: '✌️',
     hash: '#/tictactwo',
   },
   {
     id: 'tictactoe3d',
-    name: '3D Tic-Tac-Toe',
+    name: 'Tic-Tac-Three-D',
     description: 'Classic Tic-Tac-Toe across three layers. Get 3 in a row in any direction — 49 winning lines total.',
     emoji: '🧊',
     hash: '#/tictactoe3d',
