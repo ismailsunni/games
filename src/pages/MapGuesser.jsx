@@ -19,16 +19,12 @@ const TOTAL_ROUNDS = 5
 
 const BASEMAPS = {
   nolabels: {
-    label: 'Streets (no labels)',
+    label: 'Streets',
     url: 'https://basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
   },
   satellite: {
     label: 'Satellite',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  },
-  street: {
-    label: 'Street (with labels)',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   },
 }
 
@@ -94,7 +90,7 @@ export default function MapGuesser() {
   const guessLayerRef = useRef(null)
 
   const [basemap, setBasemap] = useState('nolabels')
-  const [zoom, setZoom] = useState(19)
+  const [zoom, setZoom] = useState(15)
   const [phase, setPhase] = useState('question') // question | guessing | result | gameover
   const [roundCities] = useState(() => pickCities(TOTAL_ROUNDS))
   const [currentRound, setCurrentRound] = useState(0)
@@ -112,7 +108,7 @@ export default function MapGuesser() {
     const qMap = new Map({
       target: questionMapRef.current,
       layers: [qTileLayer],
-      interactions: [],
+      interactions: defaultInteractions({ mouseWheelZoom: false, pinchZoom: false, doubleClickZoom: false }),
       controls: [],
       view: new View({
         center: fromLonLat([city.lng, city.lat]),
@@ -461,14 +457,14 @@ export default function MapGuesser() {
 
         {/* Floating: confirm guess */}
         {isGuessing && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-3 py-2 whitespace-nowrap">
             <span className="text-sm text-ink/70">
-              {guessCoord ? 'Pin placed — click to move' : 'Click the map to place your guess'}
+              {guessCoord ? '📍 Click to move' : '📍 Click to place'}
             </span>
             <button
               onClick={handleConfirm}
               disabled={!guessCoord}
-              className="bg-accent text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity text-sm"
+              className="bg-accent text-white font-semibold px-4 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity text-sm"
             >
               Confirm ✓
             </button>
