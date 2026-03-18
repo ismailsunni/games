@@ -696,7 +696,7 @@ export default function GinRummy() {
                 onClick={doKnock}
                 className="px-6 py-2 bg-accent text-paper font-medium rounded-lg hover:bg-accent/80 transition-colors"
               >
-                Knock ({playerDW} DW)
+                Knock ({_postDiscard.deadwoodValue} DW)
               </button>
             )}
             {canSuperGin && (
