@@ -32,12 +32,18 @@ function generateWinLines() {
 
 const WIN_LINES = generateWinLines()
 
-function checkWinner(squares) {
+// Returns { winner, lines[] } where lines is array of completed lines
+function checkWinner(squares, linesToWin) {
+  const xLines = [], oLines = []
   for (const line of WIN_LINES) {
     const [a, b, c] = line
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c])
-      return { winner: squares[a], line }
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      if (squares[a] === 'X') xLines.push(line)
+      else oLines.push(line)
+    }
   }
+  if (xLines.length >= linesToWin) return { winner: 'X', lines: xLines }
+  if (oLines.length >= linesToWin) return { winner: 'O', lines: oLines }
   return null
 }
 
@@ -46,17 +52,20 @@ function easyMove(squares) {
   return empty[Math.floor(Math.random() * empty.length)] ?? -1
 }
 
-function mediumMove(squares) {
+function mediumMove(squares, linesToWin) {
+  // Try to win
   for (let i = 0; i < 27; i++) {
     if (squares[i]) continue
     const t = [...squares]; t[i] = 'O'
-    if (checkWinner(t)?.winner === 'O') return i
+    if (checkWinner(t, linesToWin)?.winner === 'O') return i
   }
+  // Block opponent win
   for (let i = 0; i < 27; i++) {
     if (squares[i]) continue
     const t = [...squares]; t[i] = 'X'
-    if (checkWinner(t)?.winner === 'X') return i
+    if (checkWinner(t, linesToWin)?.winner === 'X') return i
   }
+  // Heuristic: prefer moves that extend O's lines and threaten X's
   let best = -Infinity, move = -1
   for (let i = 0; i < 27; i++) {
     if (squares[i]) continue
@@ -72,8 +81,8 @@ function mediumMove(squares) {
   return move === -1 ? easyMove(squares) : move
 }
 
-function minimaxAB(squares, isMax, alpha, beta, depth) {
-  const result = checkWinner(squares)
+function minimaxAB(squares, isMax, alpha, beta, depth, linesToWin) {
+  const result = checkWinner(squares, linesToWin)
   if (result?.winner === 'O') return 10 + depth
   if (result?.winner === 'X') return -10 - depth
   if (squares.every(Boolean)) return 0
@@ -91,7 +100,7 @@ function minimaxAB(squares, isMax, alpha, beta, depth) {
     for (let i = 0; i < 27; i++) {
       if (!squares[i]) {
         squares[i] = 'O'
-        best = Math.max(best, minimaxAB(squares, false, alpha, beta, depth - 1))
+        best = Math.max(best, minimaxAB(squares, false, alpha, beta, depth - 1, linesToWin))
         squares[i] = null
         alpha = Math.max(alpha, best)
         if (beta <= alpha) break
@@ -103,7 +112,7 @@ function minimaxAB(squares, isMax, alpha, beta, depth) {
     for (let i = 0; i < 27; i++) {
       if (!squares[i]) {
         squares[i] = 'X'
-        best = Math.min(best, minimaxAB(squares, true, alpha, beta, depth - 1))
+        best = Math.min(best, minimaxAB(squares, true, alpha, beta, depth - 1, linesToWin))
         squares[i] = null
         beta = Math.min(beta, best)
         if (beta <= alpha) break
@@ -113,12 +122,12 @@ function minimaxAB(squares, isMax, alpha, beta, depth) {
   }
 }
 
-function hardMove(squares) {
+function hardMove(squares, linesToWin) {
   let best = -Infinity, move = -1
   for (let i = 0; i < 27; i++) {
     if (!squares[i]) {
       squares[i] = 'O'
-      const s = minimaxAB(squares, false, -Infinity, Infinity, 5)
+      const s = minimaxAB(squares, false, -Infinity, Infinity, 5, linesToWin)
       squares[i] = null
       if (s > best) { best = s; move = i }
     }
@@ -290,19 +299,67 @@ function LayerBoard({ squares, winLine, playerTurn, onCellClick }) {
   )
 }
 
+// ── Line progress indicator ──────────────────────────────────
+function LineProgress({ squares, linesToWin }) {
+  const xLines = WIN_LINES.filter(line => {
+    const [a, b, c] = line
+    return squares[a] === 'X' && squares[b] === 'X' && squares[c] === 'X'
+  }).length
+  const oLines = WIN_LINES.filter(line => {
+    const [a, b, c] = line
+    return squares[a] === 'O' && squares[b] === 'O' && squares[c] === 'O'
+  }).length
+
+  return (
+    <div className="flex gap-8 text-sm">
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-accent font-bold">You (X)</span>
+        <div className="flex gap-1">
+          {Array.from({ length: linesToWin }, (_, i) => (
+            <div key={i} className={[
+              'w-6 h-6 rounded border-2 flex items-center justify-center text-xs font-bold',
+              i < xLines ? 'border-accent bg-accent/10 text-accent' : 'border-ink/20 bg-white text-ink/20'
+            ].join(' ')}>
+              {i < xLines ? '✓' : '·'}
+            </div>
+          ))}
+        </div>
+        <span className="text-ink/40 text-xs">{xLines}/{linesToWin} lines</span>
+      </div>
+      <div className="flex flex-col items-center gap-1">
+        <span className="font-bold">CPU (O)</span>
+        <div className="flex gap-1">
+          {Array.from({ length: linesToWin }, (_, i) => (
+            <div key={i} className={[
+              'w-6 h-6 rounded border-2 flex items-center justify-center text-xs font-bold',
+              i < oLines ? 'border-ink bg-ink/10 text-ink' : 'border-ink/20 bg-white text-ink/20'
+            ].join(' ')}>
+              {i < oLines ? '✓' : '·'}
+            </div>
+          ))}
+        </div>
+        <span className="text-ink/40 text-xs">{oLines}/{linesToWin} lines</span>
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard']
+const LINES_OPTIONS = [1, 2, 3]
 
 export default function TicTacToe3D() {
   const [squares, setSquares] = useState(Array(27).fill(null))
   const [difficulty, setDifficulty] = useState('Hard')
+  const [linesToWin, setLinesToWin] = useState(2)
   const [thinking, setThinking] = useState(false)
   const [viewMode, setViewMode] = useState('layer')
   const pendingRef = useRef(false)
 
-  const result = checkWinner(squares)
+  const result = checkWinner(squares, linesToWin)
   const winner = result?.winner
-  const winLine = new Set(result?.line ?? [])
+  // Flatten all winning lines into a single Set for highlighting
+  const winLine = new Set((result?.lines ?? []).flat())
   const draw = !winner && squares.every(Boolean)
   const gameOver = winner || draw
   const playerTurn = !gameOver && !thinking && squares.filter(Boolean).length % 2 === 0
@@ -316,8 +373,8 @@ export default function TicTacToe3D() {
         let move = -1
         const copy = [...squares]
         if (difficulty === 'Easy') move = easyMove(copy)
-        else if (difficulty === 'Medium') move = mediumMove(copy)
-        else move = hardMove(copy)
+        else if (difficulty === 'Medium') move = mediumMove(copy, linesToWin)
+        else move = hardMove(copy, linesToWin)
         if (move !== -1) {
           const next = [...squares]; next[move] = 'O'
           setSquares(next)
@@ -343,6 +400,11 @@ export default function TicTacToe3D() {
 
   function handleDifficulty(d) {
     setDifficulty(d); pendingRef.current = false
+    setSquares(Array(27).fill(null)); setThinking(false)
+  }
+
+  function handleLinesToWin(n) {
+    setLinesToWin(n); pendingRef.current = false
     setSquares(Array(27).fill(null)); setThinking(false)
   }
 
@@ -385,10 +447,26 @@ export default function TicTacToe3D() {
               </button>
             ))}
           </div>
+          {/* Lines to win */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-ink/50 font-medium">Lines to win:</span>
+            <div className="flex rounded-lg border border-ink/20 overflow-hidden">
+              {LINES_OPTIONS.map(n => (
+                <button key={n} onClick={() => handleLinesToWin(n)}
+                  className={['px-4 py-1.5 text-sm font-medium transition-colors',
+                    linesToWin === n ? 'bg-accent text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Status */}
         <p className="text-lg font-medium text-ink/70">{status}</p>
+
+        {/* Line progress */}
+        {!gameOver && <LineProgress squares={squares} linesToWin={linesToWin} />}
 
         {/* Board */}
         {viewMode === 'cube' ? (
@@ -412,6 +490,7 @@ export default function TicTacToe3D() {
         </div>
         <p className="text-xs text-ink/30 text-center max-w-sm">
           49 winning lines — rows, columns, pillars, and diagonals across all 3 layers.
+          First to complete <strong>{linesToWin}</strong> line{linesToWin > 1 ? 's' : ''} wins.
         </p>
       </main>
     </div>
