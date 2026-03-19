@@ -105,7 +105,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 
 function calcScore(distKm, filter = 'all') {
   // Smaller regions use tighter max distance for meaningful scoring
-  const maxDist = filter === 'indonesia' ? 2000 : filter === 'europe' ? 3000 : 10000
+  const maxDist = filter === 'indonesia' ? 2000 : filter === 'europe' ? 2500 : 10000
   return Math.max(0, Math.round(5000 * (1 - distKm / maxDist)))
 }
 
@@ -760,7 +760,7 @@ export default function MapGuesser() {
 
         {/* Floating: question CTA */}
         {isQuestion && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-3 py-2">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-3 py-2 whitespace-nowrap">
             <button
               onClick={() => {
                 if (!questionMapInstance.current || !city) return
@@ -770,16 +770,17 @@ export default function MapGuesser() {
                   duration: 400,
                 })
               }}
-              className="text-ink/60 hover:text-ink px-3 py-1.5 rounded-lg hover:bg-ink/5 transition-colors text-sm"
-              title="Reset view to city"
+              className="text-ink/60 hover:text-accent px-2 py-1.5 rounded-lg hover:bg-ink/5 transition-colors text-base leading-none"
+              title="Re-centre to city"
             >
-              🎯
+              ◎
             </button>
+            <div className="w-px h-5 bg-ink/15" />
             <button
               onClick={handleMakeGuess}
-              className="bg-accent text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition-opacity text-sm"
+              className="bg-accent text-white font-semibold px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity text-sm"
             >
-              Guess the city →
+              Guess →
             </button>
           </div>
         )}
@@ -787,8 +788,16 @@ export default function MapGuesser() {
         {/* Floating: confirm guess */}
         {isGuessing && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-3 py-2 whitespace-nowrap">
+            <button
+              onClick={() => setPhase('question')}
+              className="text-ink/60 hover:text-accent px-2 py-1.5 rounded-lg hover:bg-ink/5 transition-colors text-sm font-medium"
+              title="Back to question map"
+            >
+              ← Map
+            </button>
+            <div className="w-px h-5 bg-ink/15" />
             <span className="text-sm text-ink/70">
-              {guessCoord ? '📍 Click to move' : '📍 Click to place'}
+              {guessCoord ? '📍 Move' : '📍 Place'}
             </span>
             <button
               onClick={handleConfirm}
