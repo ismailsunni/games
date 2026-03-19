@@ -170,8 +170,8 @@ export default function MapGuesser() {
 
   const [basemap, setBasemap] = useState('nolabels')
   const [zoom] = useState(15)
-  const MIN_ZOOM = getMinZoom(filter)
   const [filter, setFilter] = useState('all')
+  const MIN_ZOOM = getMinZoom(filter)
   const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover
   const [roundCities, setRoundCities] = useState(null)
   const [currentRound, setCurrentRound] = useState(0)
