@@ -43,6 +43,8 @@ const games = [
   },
 ]
 
+const shuffled = [...games].sort(() => Math.random() - 0.5)
+
 export default function GameList() {
   return (
     <div className="min-h-screen bg-paper font-body">
@@ -59,7 +61,7 @@ export default function GameList() {
       {/* Game grid */}
       <main className="max-w-4xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {games.map((game) => (
+          {shuffled.map((game) => (
             <a
               key={game.id}
               href={game.hash}
