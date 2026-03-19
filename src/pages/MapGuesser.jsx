@@ -626,26 +626,172 @@ export default function MapGuesser() {
     window.location.reload()
   }
 
-  function handleShare() {
+  function buildShareText(results, filter, totalScore) {
     const filterLabel = FILTER_LABELS[filter]
     const lines = results.map((r, i) =>
       `Round ${i + 1}: ${r.city} ${scoreToEmojis(r.score)} ${r.score.toLocaleString()} pts`
     )
-    const text = [
+    return [
       `🗺️ Map Guesser — ${filterLabel}`,
       ...lines,
       `Total: ${totalScore.toLocaleString()} / 25,000`,
       'Play: https://ismailsunni.github.io/games/#/mapguesser',
     ].join('\n')
+  }
 
-    if (navigator.share) {
-      navigator.share({ text }).catch(() => {})
-    } else {
-      navigator.clipboard.writeText(text).then(() => {
-        setShareStatus('copied')
-        setTimeout(() => setShareStatus(null), 2000)
-      }).catch(() => {})
+  async function generateScoreCard(results, filter, totalScore) {
+    const SIZE = 1080
+    const PAD = 80
+    const canvas = document.createElement('canvas')
+    canvas.width = SIZE
+    canvas.height = SIZE
+    const ctx = canvas.getContext('2d')
+
+    // Background
+    ctx.fillStyle = '#1a1a2e'
+    ctx.fillRect(0, 0, SIZE, SIZE)
+
+    const innerW = SIZE - PAD * 2
+    let y = PAD
+
+    // Header
+    ctx.font = 'bold 40px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = '#f59e0b'
+    ctx.textAlign = 'left'
+    ctx.fillText('🌍 OrbIS', PAD, y + 40)
+    y += 56
+
+    ctx.font = '28px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText('Map Guesser', PAD, y + 28)
+    y += 42
+
+    ctx.font = '20px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = '#6366f1'
+    ctx.fillText(FILTER_LABELS[filter] || 'All Cities', PAD, y + 20)
+    y += 38
+
+    // Divider
+    ctx.strokeStyle = '#6366f1'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(PAD, y)
+    ctx.lineTo(PAD + innerW, y)
+    ctx.stroke()
+    y += 24
+
+    // Rounds list (5 rows ~80px each)
+    const ROW_H = 80
+    for (const r of results) {
+      // City + country
+      ctx.font = '22px system-ui, -apple-system, sans-serif'
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'left'
+      ctx.fillText(`${r.city}, ${r.country}`, PAD, y + 22)
+
+      // Score pts right-aligned
+      ctx.font = '20px system-ui, -apple-system, sans-serif'
+      ctx.fillStyle = '#f59e0b'
+      ctx.textAlign = 'right'
+      ctx.fillText(`${r.score.toLocaleString()} pts`, PAD + innerW, y + 22)
+
+      // Score bar
+      const BAR_TOP = y + 34
+      const BAR_H = 12
+      const BAR_W = innerW
+      const filled = BAR_W * (r.score / 5000)
+      const radius = BAR_H / 2
+
+      // Background bar
+      ctx.fillStyle = '#2a2a4e'
+      ctx.beginPath()
+      ctx.roundRect(PAD, BAR_TOP, BAR_W, BAR_H, radius)
+      ctx.fill()
+
+      // Filled bar
+      if (filled > 0) {
+        ctx.fillStyle = '#f59e0b'
+        ctx.beginPath()
+        ctx.roundRect(PAD, BAR_TOP, Math.max(filled, BAR_H), BAR_H, radius)
+        ctx.fill()
+      }
+
+      y += ROW_H
     }
+
+    y += 8
+
+    // Total score block
+    ctx.textAlign = 'left'
+    ctx.font = '20px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = '#6666aa'
+    ctx.fillText('Total', PAD, y + 20)
+    y += 36
+
+    ctx.font = 'bold 44px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(`${totalScore.toLocaleString()} / 25,000`, PAD, y + 44)
+    y += 62
+
+    const trophy = totalScore >= 20000 ? '🏆' : totalScore >= 12500 ? '🥈' : '🌍'
+    ctx.font = '48px system-ui, -apple-system, sans-serif'
+    ctx.fillText(trophy, PAD, y + 48)
+    y += 70
+
+    // Footer
+    ctx.font = '18px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = '#6666aa'
+    ctx.textAlign = 'center'
+    ctx.fillText('Play at ismailsunni.github.io/games', SIZE / 2, SIZE - PAD + 18)
+
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+  }
+
+  async function handleShare() {
+    setShareStatus('generating')
+
+    const blob = await generateScoreCard(results, filter, totalScore)
+    const file = new File([blob], 'orbis-mapguesser.png', { type: 'image/png' })
+
+    // Mobile: try file share first (shows Instagram in share sheet)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'OrbIS Map Guesser',
+          text: `I scored ${totalScore.toLocaleString()} / 25,000 on Map Guesser! Play at https://ismailsunni.github.io/games/#/mapguesser`,
+        })
+        setShareStatus(null)
+        return
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          // fall through to text share
+        } else {
+          setShareStatus(null)
+          return
+        }
+      }
+    }
+
+    // Fallback: text share
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: buildShareText(results, filter, totalScore) })
+        setShareStatus(null)
+        return
+      } catch {}
+    }
+
+    // Desktop fallback: download image + copy text
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'orbis-mapguesser.png'
+    a.click()
+    URL.revokeObjectURL(url)
+    navigator.clipboard.writeText(buildShareText(results, filter, totalScore)).catch(() => {})
+    setShareStatus('downloaded')
+    setTimeout(() => setShareStatus(null), 3000)
   }
 
   const totalScore = results.reduce((sum, r) => sum + r.score, 0)
@@ -870,11 +1016,10 @@ export default function MapGuesser() {
               onClick={handleShare}
               className="w-full border border-ink/20 text-ink font-medium py-3 px-6 rounded-lg hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2"
             >
-              {shareStatus === 'copied' ? (
-                <>✓ Copied!</>
-              ) : (
-                <>📋 Share results</>
-              )}
+              {shareStatus === 'generating' ? '⏳ Generating...' :
+               shareStatus === 'downloaded' ? '✓ Image saved!' :
+               shareStatus === 'copied' ? '✓ Copied!' :
+               '📋 Share results'}
             </button>
           </div>
 
