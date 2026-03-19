@@ -13,6 +13,7 @@ import { fromLonLat, toLonLat } from 'ol/proj'
 import { Circle as CircleStyle, Fill, Stroke, Style, Text } from 'ol/style'
 import Cluster from 'ol/source/Cluster'
 import { defaults as defaultInteractions } from 'ol/interaction'
+import Overlay from 'ol/Overlay'
 import cities from '../data/cities'
 
 const TOTAL_ROUNDS = 5
@@ -178,7 +179,9 @@ export default function MapGuesser() {
   const MIN_ZOOM = getMinZoom(filter)
   const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover | explorer
   const [explorerFilter, setExplorerFilter] = useState('all')
-  const [popup, setPopup] = useState(null) // {name, country, x, y}
+  const [popup, setPopup] = useState(null) // {name, country}
+  const explorerPopupRef = useRef(null)   // DOM element for OL Overlay
+  const explorerOverlayRef = useRef(null) // OL Overlay instance
   const [roundCities, setRoundCities] = useState(null)
   const [currentRound, setCurrentRound] = useState(0)
   const [guessCoord, setGuessCoord] = useState(null) // [lng, lat]
@@ -414,14 +417,29 @@ export default function MapGuesser() {
     })
     explorerMapInstance.current = map
 
+    // OL Overlay for popup — moves with the map automatically
+    const overlay = new Overlay({
+      element: explorerPopupRef.current,
+      positioning: 'bottom-center',
+      offset: [0, -10],
+      stopEvent: false,
+    })
+    map.addOverlay(overlay)
+    explorerOverlayRef.current = overlay
+
     map.on('click', (e) => {
-      setPopup(null)
       const features = map.getFeaturesAtPixel(e.pixel)
-      if (!features || features.length === 0) return
+      if (!features || features.length === 0) {
+        overlay.setPosition(undefined)
+        setPopup(null)
+        return
+      }
       const feature = features[0]
       const innerFeatures = feature.get('features')
       if (!innerFeatures) return
       if (innerFeatures.length > 1) {
+        overlay.setPosition(undefined)
+        setPopup(null)
         const currentZoom = map.getView().getZoom()
         map.getView().animate({
           center: feature.getGeometry().getCoordinates(),
@@ -430,8 +448,8 @@ export default function MapGuesser() {
         })
       } else {
         const cityData = innerFeatures[0].get('cityData')
-        const pixel = map.getPixelFromCoordinate(feature.getGeometry().getCoordinates())
-        setPopup({ name: cityData.name, country: cityData.country, x: pixel[0], y: pixel[1] })
+        setPopup({ name: cityData.name, country: cityData.country })
+        overlay.setPosition(feature.getGeometry().getCoordinates())
       }
     })
 
@@ -740,7 +758,7 @@ export default function MapGuesser() {
       <div className="fixed inset-0 flex flex-col bg-paper font-body overflow-hidden">
         <header className="flex-none border-b border-ink/10 bg-canvas px-4 py-2 flex items-center gap-3 z-10">
           <button
-            onClick={() => { setPhase('lobby'); setPopup(null) }}
+            onClick={() => { setPhase('lobby'); setPopup(null); if (explorerOverlayRef.current) explorerOverlayRef.current.setPosition(undefined) }}
             className="text-accent hover:underline text-sm font-medium"
           >
             ← Back
@@ -769,16 +787,18 @@ export default function MapGuesser() {
             ))}
           </div>
 
-          {/* City popup */}
-          {popup && (
-            <div
-              className="absolute z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none"
-              style={{ left: popup.x + 12, top: popup.y - 48 }}
-            >
-              <div className="text-sm font-semibold text-ink">{popup.name}</div>
-              <div className="text-xs text-ink/60">{popup.country}</div>
-            </div>
-          )}
+          {/* City popup — OL Overlay, moves with map */}
+          <div
+            ref={explorerPopupRef}
+            className={`z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none transition-opacity ${popup ? 'opacity-100' : 'opacity-0'}`}
+          >
+            {popup && (
+              <>
+                <div className="text-sm font-semibold text-ink">{popup.name}</div>
+                <div className="text-xs text-ink/60">{popup.country}</div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     )
