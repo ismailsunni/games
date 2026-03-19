@@ -34,6 +34,13 @@ const games = [
     emoji: '🗺️',
     hash: '#/mapguesser',
   },
+  {
+    id: 'colorguesser',
+    name: 'Color Guesser',
+    description: 'Test your color sense. Guess RGB values from a swatch, or match color names to swatches.',
+    emoji: '🎨',
+    hash: '#/colorguesser',
+  },
 ]
 
 export default function GameList() {

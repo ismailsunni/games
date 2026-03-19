@@ -5,6 +5,9 @@ import TicTacToe3D from './pages/TicTacToe3D'
 import TicTacTwo from './pages/TicTacTwo'
 import GinRummy from './pages/GinRummy'
 import MapGuesser from './pages/MapGuesser'
+import ColorGuesser from './pages/ColorGuesser'
+import RGBGuesser from './pages/RGBGuesser'
+import ColorNameQuiz from './pages/ColorNameQuiz'
 
 export default function App() {
   const { route } = useRoute()
@@ -14,5 +17,8 @@ export default function App() {
   if (route === '/tictactwo') return <TicTacTwo />
   if (route === '/ginrummy') return <GinRummy />
   if (route === '/mapguesser') return <MapGuesser />
+  if (route === '/colorguesser') return <ColorGuesser />
+  if (route === '/colorguesser/rgb') return <RGBGuesser />
+  if (route === '/colorguesser/namequiz') return <ColorNameQuiz />
   return <GameList />
 }
