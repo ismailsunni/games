@@ -10,7 +10,8 @@ import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import LineString from 'ol/geom/LineString'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style'
+import { Circle as CircleStyle, Fill, Stroke, Style, Text } from 'ol/style'
+import Cluster from 'ol/source/Cluster'
 import { defaults as defaultInteractions } from 'ol/interaction'
 import cities from '../data/cities'
 
@@ -159,8 +160,11 @@ function makeLineStyle() {
 export default function MapGuesser() {
   const questionMapRef = useRef(null)
   const guessMapRef = useRef(null)
+  const explorerMapRef = useRef(null)
   const questionMapInstance = useRef(null)
   const guessMapInstance = useRef(null)
+  const explorerMapInstance = useRef(null)
+  const explorerCityVecSource = useRef(null)
   const qTileLayerRef = useRef(null)
   const gTileLayerRef = useRef(null)
   const guessVectorSource = useRef(null)
@@ -172,7 +176,9 @@ export default function MapGuesser() {
   const [zoom] = useState(15)
   const [filter, setFilter] = useState('all')
   const MIN_ZOOM = getMinZoom(filter)
-  const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover
+  const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover | explorer
+  const [explorerFilter, setExplorerFilter] = useState('all')
+  const [popup, setPopup] = useState(null) // {name, country, x, y}
   const [roundCities, setRoundCities] = useState(null)
   const [currentRound, setCurrentRound] = useState(0)
   const [guessCoord, setGuessCoord] = useState(null) // [lng, lat]
@@ -336,6 +342,108 @@ export default function MapGuesser() {
       if (questionMapInstance.current) questionMapInstance.current.updateSize()
     }, 50)
   }, [phase])
+
+  // Init explorer map when phase becomes 'explorer'
+  useEffect(() => {
+    if (phase !== 'explorer') return
+
+    const filteredCities = filterCities(explorerFilter)
+    const makeFeatures = (pool) =>
+      pool.map((c) => {
+        const f = new Feature({ geometry: new Point(fromLonLat([c.lng, c.lat])) })
+        f.set('cityData', c)
+        return f
+      })
+
+    const cityVecSource = new VectorSource({ features: makeFeatures(filteredCities) })
+    explorerCityVecSource.current = cityVecSource
+
+    const clusterSource = new Cluster({ distance: 40, source: cityVecSource })
+    const clusterLayer = new VectorLayer({
+      source: clusterSource,
+      style: (feature) => {
+        const count = feature.get('features').length
+        if (count === 1) {
+          return new Style({
+            image: new CircleStyle({
+              radius: 5,
+              fill: new Fill({ color: '#3b82f6' }),
+              stroke: new Stroke({ color: '#fff', width: 1.5 }),
+            }),
+          })
+        }
+        return new Style({
+          image: new CircleStyle({
+            radius: 10 + Math.min(count, 20) * 0.5,
+            fill: new Fill({ color: '#3b82f6' }),
+            stroke: new Stroke({ color: '#fff', width: 2 }),
+          }),
+          text: new Text({
+            text: String(count),
+            fill: new Fill({ color: '#fff' }),
+            font: 'bold 11px sans-serif',
+          }),
+        })
+      },
+    })
+
+    const tileLayer = new TileLayer({
+      source: new XYZ({ url: BASEMAPS.nolabels.url }),
+    })
+
+    const map = new Map({
+      target: explorerMapRef.current,
+      layers: [tileLayer, clusterLayer],
+      interactions: defaultInteractions(),
+      controls: [],
+      view: new View({
+        center: fromLonLat([0, 20]),
+        zoom: 2,
+      }),
+    })
+    explorerMapInstance.current = map
+
+    map.on('click', (e) => {
+      setPopup(null)
+      const features = map.getFeaturesAtPixel(e.pixel)
+      if (!features || features.length === 0) return
+      const feature = features[0]
+      const innerFeatures = feature.get('features')
+      if (!innerFeatures) return
+      if (innerFeatures.length > 1) {
+        const currentZoom = map.getView().getZoom()
+        map.getView().animate({
+          center: feature.getGeometry().getCoordinates(),
+          zoom: currentZoom + 2,
+          duration: 400,
+        })
+      } else {
+        const cityData = innerFeatures[0].get('cityData')
+        const pixel = map.getPixelFromCoordinate(feature.getGeometry().getCoordinates())
+        setPopup({ name: cityData.name, country: cityData.country, x: pixel[0], y: pixel[1] })
+      }
+    })
+
+    return () => {
+      map.setTarget(null)
+      explorerMapInstance.current = null
+      explorerCityVecSource.current = null
+    }
+  }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update explorer city features when filter tab changes
+  useEffect(() => {
+    if (!explorerCityVecSource.current) return
+    const filteredCities = filterCities(explorerFilter)
+    const features = filteredCities.map((c) => {
+      const f = new Feature({ geometry: new Point(fromLonLat([c.lng, c.lat])) })
+      f.set('cityData', c)
+      return f
+    })
+    explorerCityVecSource.current.clear()
+    explorerCityVecSource.current.addFeatures(features)
+    setPopup(null)
+  }, [explorerFilter])
 
   // Ref so timer callbacks always see latest phase/guessCoord without stale closures
   const onTimerExpireRef = useRef(null)
@@ -520,6 +628,7 @@ export default function MapGuesser() {
   const isResult = phase === 'result'
   const isGameover = phase === 'gameover'
   const isLobby = phase === 'lobby'
+  const isExplorer = phase === 'explorer'
 
   // ── Lobby screen ──────────────────────────────────────────────────────────
   if (isLobby) {
@@ -596,7 +705,69 @@ export default function MapGuesser() {
             >
               {hasContinue ? 'New Game' : 'Start Game →'}
             </button>
+            <button
+              onClick={() => setPhase('explorer')}
+              className="w-full border border-ink/20 text-ink font-medium py-3 px-6 rounded-lg hover:border-accent hover:text-accent transition-colors text-base"
+            >
+              🌍 Browse cities
+            </button>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Explorer screen ────────────────────────────────────────────────────────
+  if (isExplorer) {
+    const explorerTabs = [
+      { value: 'all', label: 'All' },
+      { value: 'capitals', label: 'Capitals' },
+      { value: 'europe', label: 'Europe' },
+      { value: 'indonesia', label: 'Indonesia' },
+    ]
+    return (
+      <div className="fixed inset-0 flex flex-col bg-paper font-body overflow-hidden">
+        <header className="flex-none border-b border-ink/10 bg-canvas px-4 py-2 flex items-center gap-3 z-10">
+          <button
+            onClick={() => { setPhase('lobby'); setPopup(null) }}
+            className="text-accent hover:underline text-sm font-medium"
+          >
+            ← Back
+          </button>
+          <h1 className="font-display text-lg font-bold text-ink flex-1 text-center">🌍 Cities Explorer</h1>
+          <div className="w-12" />
+        </header>
+
+        <div className="flex-1 relative overflow-hidden">
+          <div ref={explorerMapRef} className="w-full h-full" />
+
+          {/* Filter tabs */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex gap-1 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-2 py-1.5">
+            {explorerTabs.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setExplorerFilter(tab.value)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  explorerFilter === tab.value
+                    ? 'bg-accent text-white'
+                    : 'text-ink/70 hover:bg-ink/5'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* City popup */}
+          {popup && (
+            <div
+              className="absolute z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none"
+              style={{ left: popup.x + 12, top: popup.y - 48 }}
+            >
+              <div className="text-sm font-semibold text-ink">{popup.name}</div>
+              <div className="text-xs text-ink/60">{popup.country}</div>
+            </div>
+          )}
         </div>
       </div>
     )
