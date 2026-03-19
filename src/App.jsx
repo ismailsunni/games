@@ -29,18 +29,21 @@ function UpdateToast() {
 export default function App() {
   const { route } = useRoute()
 
+  let page
+  if (route === '/tictactoe') page = <TicTacToe />
+  else if (route === '/tictactoe3d') page = <TicTacToe3D />
+  else if (route === '/tictactwo') page = <TicTacTwo />
+  else if (route === '/ginrummy') page = <GinRummy />
+  else if (route === '/mapguesser') page = <MapGuesser />
+  else if (route === '/colorguesser') page = <ColorGuesser />
+  else if (route === '/colorguesser/rgb') page = <RGBGuesser />
+  else if (route === '/colorguesser/namequiz') page = <ColorNameQuiz />
+  else page = <GameList />
+
   return (
     <>
       <UpdateToast />
-      {route === '/tictactoe' && <TicTacToe />}
-      {route === '/tictactoe3d' && <TicTacToe3D />}
-      {route === '/tictactwo' && <TicTacTwo />}
-      {route === '/ginrummy' && <GinRummy />}
-      {route === '/mapguesser' && <MapGuesser />}
-      {route === '/colorguesser' && <ColorGuesser />}
-      {route === '/colorguesser/rgb' && <RGBGuesser />}
-      {route === '/colorguesser/namequiz' && <ColorNameQuiz />}
-      {!route || route === '/' ? <GameList /> : null}
+      {page}
     </>
   )
 }
