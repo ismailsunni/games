@@ -52,9 +52,9 @@ export default function GameList() {
       <header className="border-b border-ink/10 bg-canvas px-6 py-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-ink leading-tight">
-            🎮 Games
+            🌍 OrbIS
           </h1>
-          <p className="mt-2 text-ink/60 text-lg">A collection of games by Ismail</p>
+          <p className="mt-2 text-ink/60 text-lg">Play the world.</p>
         </div>
       </header>
 
@@ -88,7 +88,7 @@ export default function GameList() {
 
       {/* Footer */}
       <footer className="border-t border-ink/10 px-6 py-6 text-center text-ink/40 text-sm">
-        ismailsunni.id/games
+        OrbIS · Play the world. · by ismailsunni
       </footer>
     </div>
   )

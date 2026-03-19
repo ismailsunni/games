@@ -10,14 +10,14 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'Games by Ismail',
-        short_name: 'Games',
-        description: 'A collection of games by Ismail Sunni',
+        name: 'OrbIS',
+        short_name: 'OrbIS',
+        description: 'Play the world. A collection of games by Ismail Sunni.',
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',
         display: 'standalone',
         scope: '/games/',
-        start_url: '/games/',
+        start_url: '/games/?utm_source=pwa',
         icons: [
           {
             src: 'icons/icon-192.png',
