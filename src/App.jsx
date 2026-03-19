@@ -14,14 +14,9 @@ function UpdateToast() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
   if (!needRefresh) return null
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-ink text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium">
-      <span>🆕 New version available</span>
-      <button
-        onClick={() => updateServiceWorker(true)}
-        className="bg-white text-ink px-3 py-1 rounded-lg font-semibold hover:bg-ink/10 hover:text-white transition-colors"
-      >
-        Reload
-      </button>
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-ink text-white px-4 py-2.5 rounded-xl shadow-lg text-sm">
+      <span>🆕 Update available</span>
+      <button onClick={() => updateServiceWorker(true)} className="bg-accent text-white px-3 py-1 rounded-lg font-semibold hover:opacity-90 transition-opacity">Update</button>
     </div>
   )
 }
