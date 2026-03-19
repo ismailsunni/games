@@ -1,4 +1,30 @@
-const games = [
+const featuredGames = [
+  {
+    id: 'mapguesser',
+    name: 'Map Guesser',
+    description: 'Zoom in on a mystery city. Guess where it is on the world map. Score based on distance.',
+    emoji: '🗺️',
+    hash: '#/mapguesser',
+    featured: true,
+  },
+  {
+    id: 'ginrummy',
+    name: 'Gin Rummy',
+    description: 'Classic card game. Draw, discard, form sets and runs. Knock when deadwood ≤ 10. First to 100 wins.',
+    emoji: '🃏',
+    hash: '#/ginrummy',
+    featured: true,
+  },
+]
+
+const otherGames = [
+  {
+    id: 'colorguesser',
+    name: 'Color Guesser',
+    description: 'Test your color sense. Guess RGB values from a swatch, or match color names to swatches.',
+    emoji: '🎨',
+    hash: '#/colorguesser',
+  },
   {
     id: 'tictactoe',
     name: 'Tic-Tac-Toe',
@@ -20,30 +46,9 @@ const games = [
     emoji: '🧊',
     hash: '#/tictactoe3d',
   },
-  {
-    id: 'ginrummy',
-    name: 'Gin Rummy',
-    description: 'Classic card game. Draw, discard, form sets and runs. Knock when deadwood ≤ 10. First to 100 wins.',
-    emoji: '🃏',
-    hash: '#/ginrummy',
-  },
-  {
-    id: 'mapguesser',
-    name: 'Map Guesser',
-    description: 'Zoom in on a mystery city. Guess where it is on the world map. Score based on distance.',
-    emoji: '🗺️',
-    hash: '#/mapguesser',
-  },
-  {
-    id: 'colorguesser',
-    name: 'Color Guesser',
-    description: 'Test your color sense. Guess RGB values from a swatch, or match color names to swatches.',
-    emoji: '🎨',
-    hash: '#/colorguesser',
-  },
 ]
 
-const shuffled = [...games].sort(() => Math.random() - 0.5)
+const shuffled = [...otherGames].sort(() => Math.random() - 0.5)
 
 export default function GameList() {
   return (
@@ -59,30 +64,67 @@ export default function GameList() {
       </header>
 
       {/* Game grid */}
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {shuffled.map((game) => (
-            <a
-              key={game.id}
-              href={game.hash}
-              className="group block bg-white border border-ink/10 rounded-lg overflow-hidden hover:border-accent hover:shadow-md transition-all duration-200"
-            >
-              <div className="bg-canvas px-6 py-8 text-center text-5xl">
-                {game.emoji}
-              </div>
-              <div className="p-5">
-                <h2 className="font-display text-xl font-semibold text-ink mb-1">
-                  {game.name}
-                </h2>
-                <p className="text-ink/60 text-sm leading-relaxed mb-4">
-                  {game.description}
-                </p>
-                <span className="text-accent font-medium text-sm group-hover:underline">
-                  Play →
-                </span>
-              </div>
-            </a>
-          ))}
+      <main className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+        {/* Featured */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-semibold uppercase tracking-widest text-accent">⭐ Featured</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {featuredGames.map((game) => (
+              <a
+                key={game.id}
+                href={game.hash}
+                className="group block bg-white border-2 border-accent/30 rounded-lg overflow-hidden hover:border-accent hover:shadow-md transition-all duration-200"
+              >
+                <div className="bg-accent/5 px-6 py-8 text-center text-5xl">
+                  {game.emoji}
+                </div>
+                <div className="p-5">
+                  <h2 className="font-display text-xl font-semibold text-ink mb-1">
+                    {game.name}
+                  </h2>
+                  <p className="text-ink/60 text-sm leading-relaxed mb-4">
+                    {game.description}
+                  </p>
+                  <span className="text-accent font-medium text-sm group-hover:underline">
+                    Play →
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* More games */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-semibold uppercase tracking-widest text-ink/40">More Games</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {shuffled.map((game) => (
+              <a
+                key={game.id}
+                href={game.hash}
+                className="group block bg-white border border-ink/10 rounded-lg overflow-hidden hover:border-accent hover:shadow-md transition-all duration-200"
+              >
+                <div className="bg-canvas px-6 py-8 text-center text-5xl">
+                  {game.emoji}
+                </div>
+                <div className="p-5">
+                  <h2 className="font-display text-xl font-semibold text-ink mb-1">
+                    {game.name}
+                  </h2>
+                  <p className="text-ink/60 text-sm leading-relaxed mb-4">
+                    {game.description}
+                  </p>
+                  <span className="text-accent font-medium text-sm group-hover:underline">
+                    Play →
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </main>
 
