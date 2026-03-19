@@ -1010,16 +1010,36 @@ export default function MapGuesser() {
             </div>
           </div>
 
-          {/* Share button */}
-          <div className="mb-4">
+          {/* Share buttons */}
+          <div className="mb-4 flex gap-2">
+            <button
+              onClick={() => {
+                const text = buildShareText(results, filter, totalScore)
+                const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
+                window.open(url, '_blank')
+              }}
+              className="flex-1 border border-ink/20 text-ink font-medium py-3 px-3 rounded-lg hover:border-[#1da1f2] hover:text-[#1da1f2] transition-colors flex items-center justify-center gap-1.5 text-sm"
+            >
+              𝕏 Twitter
+            </button>
+            <button
+              onClick={() => {
+                const text = buildShareText(results, filter, totalScore)
+                const url = `https://wa.me/?text=${encodeURIComponent(text)}`
+                window.open(url, '_blank')
+              }}
+              className="flex-1 border border-ink/20 text-ink font-medium py-3 px-3 rounded-lg hover:border-[#25d366] hover:text-[#25d366] transition-colors flex items-center justify-center gap-1.5 text-sm"
+            >
+              💬 WhatsApp
+            </button>
             <button
               onClick={handleShare}
-              className="w-full border border-ink/20 text-ink font-medium py-3 px-6 rounded-lg hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2"
+              disabled={shareStatus === 'generating'}
+              className="flex-1 border border-ink/20 text-ink font-medium py-3 px-3 rounded-lg hover:border-[#e1306c] hover:text-[#e1306c] transition-colors flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
             >
-              {shareStatus === 'generating' ? '⏳ Generating...' :
-               shareStatus === 'downloaded' ? '✓ Image saved!' :
-               shareStatus === 'copied' ? '✓ Copied!' :
-               '📋 Share results'}
+              {shareStatus === 'generating' ? '⏳' :
+               shareStatus === 'downloaded' ? '✓ Saved' :
+               '📸 Instagram'}
             </button>
           </div>
 
