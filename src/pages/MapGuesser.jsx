@@ -361,15 +361,26 @@ export default function MapGuesser() {
     const clusterSource = new Cluster({ distance: 40, source: cityVecSource })
     const clusterLayer = new VectorLayer({
       source: clusterSource,
-      style: (feature) => {
+      style: (feature, resolution) => {
         const count = feature.get('features').length
         if (count === 1) {
+          const cityData = feature.get('features')[0].get('cityData')
+          // Show label only when zoomed in enough (resolution < 5000 ≈ zoom 5+)
+          const showLabel = resolution < 5000
           return new Style({
             image: new CircleStyle({
               radius: 5,
               fill: new Fill({ color: '#3b82f6' }),
               stroke: new Stroke({ color: '#fff', width: 1.5 }),
             }),
+            text: showLabel ? new Text({
+              text: cityData?.name || '',
+              offsetY: -14,
+              font: '11px sans-serif',
+              fill: new Fill({ color: '#1a1a2e' }),
+              stroke: new Stroke({ color: '#fff', width: 3 }),
+              overflow: false,
+            }) : undefined,
           })
         }
         return new Style({
