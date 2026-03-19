@@ -137,7 +137,7 @@ const cities = [
   { name: 'Abu Dhabi', country: 'UAE', lat: 24.4539, lng: 54.3773, capital: true, continent: 'Asia', indonesia: false },
   { name: 'Amman', country: 'Jordan', lat: 31.9454, lng: 35.9284, capital: true, continent: 'Asia', indonesia: false },
   { name: 'Beirut', country: 'Lebanon', lat: 33.8938, lng: 35.5018, capital: true, continent: 'Asia', indonesia: false },
-  { name: 'Tel Aviv', country: 'Israel', lat: 32.0853, lng: 34.7818, capital: false, continent: 'Asia', indonesia: false },
+
   { name: 'Damascus', country: 'Syria', lat: 33.5138, lng: 36.2765, capital: true, continent: 'Asia', indonesia: false },
   { name: 'Kuwait City', country: 'Kuwait', lat: 29.3759, lng: 47.9774, capital: true, continent: 'Asia', indonesia: false },
   { name: "Sana'a", country: 'Yemen', lat: 15.5527, lng: 44.2075, capital: true, continent: 'Asia', indonesia: false },

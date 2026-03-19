@@ -31,12 +31,14 @@ const BASEMAPS = {
 const FILTER_LABELS = {
   all: 'All Cities',
   capitals: 'Capital Cities',
+  europe: 'Europe',
   indonesia: 'Indonesia',
 }
 
 const DEFAULT_STATS = {
   all: { gamesPlayed: 0, bestScore: 0, totalScore: 0 },
   capitals: { gamesPlayed: 0, bestScore: 0, totalScore: 0 },
+  europe: { gamesPlayed: 0, bestScore: 0, totalScore: 0 },
   indonesia: { gamesPlayed: 0, bestScore: 0, totalScore: 0 },
 }
 
@@ -48,6 +50,7 @@ function loadStats() {
     return {
       all: { ...DEFAULT_STATS.all, ...parsed.all },
       capitals: { ...DEFAULT_STATS.capitals, ...parsed.capitals },
+      europe: { ...DEFAULT_STATS.europe, ...parsed.europe },
       indonesia: { ...DEFAULT_STATS.indonesia, ...parsed.indonesia },
     }
   } catch {
@@ -100,16 +103,22 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.asin(Math.sqrt(a))
 }
 
-function calcScore(distKm, isIndonesia = false) {
-  // Indonesia: max meaningful distance ~2000km (Sabang–Merauke ~5200km, but granularity matters more)
-  const maxDist = isIndonesia ? 2000 : 10000
+function calcScore(distKm, filter = 'all') {
+  // Smaller regions use tighter max distance for meaningful scoring
+  const maxDist = filter === 'indonesia' ? 2000 : filter === 'europe' ? 3000 : 10000
   return Math.max(0, Math.round(5000 * (1 - distKm / maxDist)))
 }
 
 function filterCities(filter) {
   if (filter === 'capitals') return cities.filter((c) => c.capital)
   if (filter === 'indonesia') return cities.filter((c) => c.indonesia)
+  if (filter === 'europe') return cities.filter((c) => c.continent === 'Europe')
   return cities
+}
+
+// Min zoom per filter
+function getMinZoom(filter) {
+  return filter === 'indonesia' ? 11 : 10
 }
 
 function pickCities(count, pool) {
@@ -161,7 +170,7 @@ export default function MapGuesser() {
 
   const [basemap, setBasemap] = useState('nolabels')
   const [zoom] = useState(15)
-  const MIN_ZOOM = 10
+  const MIN_ZOOM = getMinZoom(filter)
   const [filter, setFilter] = useState('all')
   const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover
   const [roundCities, setRoundCities] = useState(null)
@@ -231,16 +240,15 @@ export default function MapGuesser() {
     const vLayer = new VectorLayer({ source: vSource })
     guessLayerRef.current = vLayer
 
-    const indonesiaMode = filter === 'indonesia'
     const gMap = new Map({
       target: guessMapRef.current,
       layers: [gTileLayer, vLayer],
       interactions: defaultInteractions(),
       controls: [],
       view: new View({
-        center: fromLonLat(indonesiaMode ? [118, -2.5] : [0, 20]),
-        zoom: indonesiaMode ? 4 : 2,
-        minZoom: indonesiaMode ? 4 : undefined,
+        center: fromLonLat(filter === 'indonesia' ? [118, -2.5] : filter === 'europe' ? [15, 50] : [0, 20]),
+        zoom: filter === 'indonesia' ? 4 : filter === 'europe' ? 4 : 2,
+        minZoom: filter === 'indonesia' ? 4 : filter === 'europe' ? 3 : undefined,
       }),
     })
     guessMapInstance.current = gMap
@@ -299,10 +307,9 @@ export default function MapGuesser() {
     setGuessCoord(null)
     if (guessVectorSource.current) guessVectorSource.current.clear()
     if (guessMapInstance.current) {
-      const indonesiaMode = filter === 'indonesia'
       guessMapInstance.current.getView().animate({
-        center: fromLonLat(indonesiaMode ? [118, -2.5] : [0, 20]),
-        zoom: indonesiaMode ? 4 : 2,
+        center: fromLonLat(filter === 'indonesia' ? [118, -2.5] : filter === 'europe' ? [15, 50] : [0, 20]),
+        zoom: filter === 'indonesia' ? 4 : filter === 'europe' ? 4 : 2,
         duration: 400,
       })
     }
@@ -388,7 +395,7 @@ export default function MapGuesser() {
     if (!guessCoord) return
     const city = roundCities[currentRound]
     const distKm = haversineKm(guessCoord[1], guessCoord[0], city.lat, city.lng)
-    const score = calcScore(distKm, filter === 'indonesia')
+    const score = calcScore(distKm, filter)
 
     const src = guessVectorSource.current
     const actualCoord = fromLonLat([city.lng, city.lat])
@@ -495,6 +502,7 @@ export default function MapGuesser() {
     const filterOptions = [
       { value: 'all', label: 'All cities', desc: `${cities.length} cities worldwide` },
       { value: 'capitals', label: 'Capital cities only', desc: `${cities.filter(c => c.capital).length} world capitals` },
+      { value: 'europe', label: 'Europe only', desc: `${cities.filter(c => c.continent === 'Europe').length} European cities` },
       { value: 'indonesia', label: 'Indonesia only', desc: `${cities.filter(c => c.indonesia).length} cities & kabupatens` },
     ]
     const hasContinue = savedState && savedState.filter === filter
@@ -752,7 +760,21 @@ export default function MapGuesser() {
 
         {/* Floating: question CTA */}
         {isQuestion && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-3">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-3 py-2">
+            <button
+              onClick={() => {
+                if (!questionMapInstance.current || !city) return
+                questionMapInstance.current.getView().animate({
+                  center: fromLonLat([city.lng, city.lat]),
+                  zoom: zoom,
+                  duration: 400,
+                })
+              }}
+              className="text-ink/60 hover:text-ink px-3 py-1.5 rounded-lg hover:bg-ink/5 transition-colors text-sm"
+              title="Reset view to city"
+            >
+              🎯
+            </button>
             <button
               onClick={handleMakeGuess}
               className="bg-accent text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition-opacity text-sm"
