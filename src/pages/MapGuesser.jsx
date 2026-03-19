@@ -337,16 +337,18 @@ export default function MapGuesser() {
     }, 50)
   }, [phase])
 
-  // Timer for question phase
+  // Ref so timer callbacks always see latest phase/guessCoord without stale closures
+  const onTimerExpireRef = useRef(null)
+
+  // Timer: reset on new round, tick through question + guessing, call onTimerExpireRef at 0
   useEffect(() => {
-    if (phase !== 'question') return
-    setTimeLeft(ROUND_TIME)
-    let id
-    id = setInterval(() => {
+    if (phase !== 'question' && phase !== 'guessing') return
+    if (phase === 'question') setTimeLeft(ROUND_TIME)
+    const id = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
           clearInterval(id)
-          setPhase('guessing')
+          onTimerExpireRef.current?.()
           return 0
         }
         return t - 1
@@ -354,6 +356,28 @@ export default function MapGuesser() {
     }, 1000)
     return () => clearInterval(id)
   }, [phase, currentRound])
+
+  // Always keep expire ref up to date with current phase & guessCoord
+  onTimerExpireRef.current = () => {
+    if (phase === 'question') {
+      setPhase('guessing')
+    } else if (phase === 'guessing') {
+      // No guess placed → skip round with 0 pts
+      if (!guessCoord) {
+        setResults((prev) => [
+          ...prev,
+          { city: roundCities[currentRound].name, country: roundCities[currentRound].country, distKm: 0, score: 0,
+            guessLat: null, guessLng: null, actualLat: roundCities[currentRound].lat, actualLng: roundCities[currentRound].lng },
+        ])
+        const nextRound = currentRound + 1
+        if (nextRound >= TOTAL_ROUNDS) setPhase('gameover')
+        else { setCurrentRound(nextRound); setPhase('question') }
+      } else {
+        // Guess placed → auto-confirm
+        document.getElementById('mg-confirm-btn')?.click()
+      }
+    }
+  }
 
   function handleStartGame() {
     clearGameState()
@@ -699,8 +723,8 @@ export default function MapGuesser() {
         ))}
       </div>
 
-      {/* Timer bar — only during question phase */}
-      {isQuestion && (
+      {/* Timer bar — runs through question + guessing */}
+      {(isQuestion || isGuessing) && (
         <div className="flex-none h-1 bg-ink/10">
           <div
             className="h-full bg-accent transition-all duration-1000 ease-linear"
@@ -726,7 +750,7 @@ export default function MapGuesser() {
         </div>
 
         {/* Timer countdown badge */}
-        {isQuestion && (
+        {(isQuestion || isGuessing) && (
           <div
             className={`absolute top-3 left-3 z-30 px-2.5 py-1 rounded-lg text-sm font-bold shadow bg-white/90 tabular-nums transition-colors ${
               timeLeft <= 10 ? 'text-red-500' : 'text-ink'
@@ -767,6 +791,7 @@ export default function MapGuesser() {
                 questionMapInstance.current.getView().animate({
                   center: fromLonLat([city.lng, city.lat]),
                   zoom: zoom,
+                  rotation: 0,
                   duration: 400,
                 })
               }}
@@ -800,6 +825,7 @@ export default function MapGuesser() {
               {guessCoord ? '📍 Move' : '📍 Place'}
             </span>
             <button
+              id="mg-confirm-btn"
               onClick={handleConfirm}
               disabled={!guessCoord}
               className="bg-accent text-white font-semibold px-4 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity text-sm"
