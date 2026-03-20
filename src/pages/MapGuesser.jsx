@@ -626,13 +626,13 @@ export default function MapGuesser() {
   function buildShareText(results, filter, totalScore) {
     const filterLabel = FILTER_LABELS[filter]
     const lines = results.map((r, i) =>
-      `Round ${i + 1}: ${r.city} ${scoreToEmojis(r.score)} ${r.score.toLocaleString()} pts`
+      `${i + 1}. ${r.city} ${scoreToEmojis(r.score)}`
     )
     return [
       `🗺️ Map Guesser — ${filterLabel}`,
       ...lines,
-      `Total: ${totalScore.toLocaleString()} / 25,000`,
-      'Play: https://ismailsunni.github.io/games/#/mapguesser',
+      `${totalScore.toLocaleString()} / 25,000`,
+      'https://ismailsunni.github.io/games/#/mapguesser',
     ].join('\n')
   }
 
@@ -1007,36 +1007,16 @@ export default function MapGuesser() {
             </div>
           </div>
 
-          {/* Share buttons */}
-          <div className="mb-4 flex gap-2">
-            <button
-              onClick={() => {
-                const text = buildShareText(results, filter, totalScore)
-                const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
-                window.open(url, '_blank')
-              }}
-              className="flex-1 border border-ink/20 text-ink font-medium py-3 px-3 rounded-lg hover:border-[#1da1f2] hover:text-[#1da1f2] transition-colors flex items-center justify-center gap-1.5 text-sm"
-            >
-              𝕏 Twitter
-            </button>
-            <button
-              onClick={() => {
-                const text = buildShareText(results, filter, totalScore)
-                const url = `https://wa.me/?text=${encodeURIComponent(text)}`
-                window.open(url, '_blank')
-              }}
-              className="flex-1 border border-ink/20 text-ink font-medium py-3 px-3 rounded-lg hover:border-[#25d366] hover:text-[#25d366] transition-colors flex items-center justify-center gap-1.5 text-sm"
-            >
-              💬 WhatsApp
-            </button>
+          {/* Share button */}
+          <div className="mb-4">
             <button
               onClick={handleShare}
               disabled={shareStatus === 'generating'}
-              className="flex-1 border border-ink/20 text-ink font-medium py-3 px-3 rounded-lg hover:border-[#e1306c] hover:text-[#e1306c] transition-colors flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-sm disabled:opacity-50"
             >
-              {shareStatus === 'generating' ? '⏳' :
-               shareStatus === 'downloaded' ? '✓ Saved' :
-               '📸 Instagram'}
+              {shareStatus === 'generating' ? '⏳ Generating…' :
+               shareStatus === 'downloaded' ? '✓ Saved!' :
+               '📸 Share'}
             </button>
           </div>
 
