@@ -189,7 +189,7 @@ export default function MapGuesser() {
   const [timeLeft, setTimeLeft] = useState(ROUND_TIME)
   const [stats, setStats] = useState(() => loadStats())
   const [savedState, setSavedState] = useState(() => loadGameState())
-  const [shareStatus, setShareStatus] = useState(null) // null | 'copied'
+  const [shareStatus, setShareStatus] = useState(null) // null | 'generating' | 'downloaded' | 'copied'
 
   // Persist game state on every relevant state change
   useEffect(() => {
@@ -744,50 +744,43 @@ export default function MapGuesser() {
     return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
   }
 
-  async function handleShare() {
+  async function handleShareImage() {
     setShareStatus('generating')
-
     const blob = await generateScoreCard(results, filter, totalScore)
     const file = new File([blob], 'orbis-mapguesser.png', { type: 'image/png' })
 
-    // Mobile: try file share first (shows Instagram in share sheet)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({
-          files: [file],
-          title: 'OrbIS Map Guesser',
-          text: `I scored ${totalScore.toLocaleString()} / 25,000 on Map Guesser! Play at https://ismailsunni.github.io/games/#/mapguesser`,
-        })
+        await navigator.share({ files: [file], title: 'OrbIS Map Guesser' })
         setShareStatus(null)
         return
       } catch (e) {
-        if (e.name !== 'AbortError') {
-          // fall through to text share
-        } else {
-          setShareStatus(null)
-          return
-        }
+        if (e.name === 'AbortError') { setShareStatus(null); return }
       }
     }
 
-    // Fallback: text share
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: buildShareText(results, filter, totalScore) })
-        setShareStatus(null)
-        return
-      } catch {}
-    }
-
-    // Desktop fallback: download image + copy text
+    // Fallback: download image
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = 'orbis-mapguesser.png'
-    a.click()
+    a.href = url; a.download = 'orbis-mapguesser.png'; a.click()
     URL.revokeObjectURL(url)
-    navigator.clipboard.writeText(buildShareText(results, filter, totalScore)).catch(() => {})
     setShareStatus('downloaded')
+    setTimeout(() => setShareStatus(null), 3000)
+  }
+
+  async function handleShareText() {
+    const text = buildShareText(results, filter, totalScore)
+    if (navigator.share) {
+      try {
+        await navigator.share({ text })
+        return
+      } catch (e) {
+        if (e.name === 'AbortError') return
+      }
+    }
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(text).catch(() => {})
+    setShareStatus('copied')
     setTimeout(() => setShareStatus(null), 3000)
   }
 
@@ -1007,16 +1000,20 @@ export default function MapGuesser() {
             </div>
           </div>
 
-          {/* Share button */}
-          <div className="mb-4">
+          {/* Share buttons */}
+          <div className="mb-4 flex gap-2">
             <button
-              onClick={handleShare}
+              onClick={handleShareImage}
               disabled={shareStatus === 'generating'}
-              className="w-full bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+              className="flex-1 bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white font-semibold py-3 px-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
             >
-              {shareStatus === 'generating' ? '⏳ Generating…' :
-               shareStatus === 'downloaded' ? '✓ Saved!' :
-               '📸 Share'}
+              {shareStatus === 'generating' ? '⏳' : shareStatus === 'downloaded' ? '✓ Saved!' : '📸 Image'}
+            </button>
+            <button
+              onClick={handleShareText}
+              className="flex-1 border border-ink/20 text-ink font-semibold py-3 px-3 rounded-lg hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-1.5 text-sm"
+            >
+              {shareStatus === 'copied' ? '✓ Copied!' : '📋 Text'}
             </button>
           </div>
 
