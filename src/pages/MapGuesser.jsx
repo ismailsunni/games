@@ -292,14 +292,13 @@ export default function MapGuesser() {
     }
   }, [basemap])
 
-  // Animate question map to new city on round change
+  // Snap question map to new city on round change (no animation — reveals location)
   useEffect(() => {
     if (!questionMapInstance.current || !roundCities) return
     const city = roundCities[currentRound]
-    questionMapInstance.current.getView().animate({
-      center: fromLonLat([city.lng, city.lat]),
-      duration: 600,
-    })
+    const view = questionMapInstance.current.getView()
+    view.setCenter(fromLonLat([city.lng, city.lat]))
+    view.setZoom(zoom)
     // Move city pin to new location
     if (cityPinSource.current) {
       cityPinSource.current.clear()
@@ -316,11 +315,9 @@ export default function MapGuesser() {
     setGuessCoord(null)
     if (guessVectorSource.current) guessVectorSource.current.clear()
     if (guessMapInstance.current) {
-      guessMapInstance.current.getView().animate({
-        center: fromLonLat(filter === 'indonesia' ? [118, -2.5] : filter === 'europe' ? [15, 50] : [0, 20]),
-        zoom: filter === 'indonesia' ? 4 : filter === 'europe' ? 4 : 2,
-        duration: 400,
-      })
+      const gView = guessMapInstance.current.getView()
+      gView.setCenter(fromLonLat(filter === 'indonesia' ? [118, -2.5] : filter === 'europe' ? [15, 50] : [0, 20]))
+      gView.setZoom(filter === 'indonesia' ? 4 : filter === 'europe' ? 4 : 2)
     }
   }, [currentRound, roundCities])
 
