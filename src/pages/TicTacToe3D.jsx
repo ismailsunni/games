@@ -32,7 +32,6 @@ function generateWinLines() {
 
 const WIN_LINES = generateWinLines()
 
-// Returns { winner, lines[] } where lines is array of all completed lines for the winner
 function checkWinner(squares, linesToWin) {
   const xLines = [], oLines = []
   for (const line of WIN_LINES) {
@@ -47,7 +46,6 @@ function checkWinner(squares, linesToWin) {
   return null
 }
 
-// Returns { xCells, oCells } — Sets of cell indices in any completed line (for live highlighting)
 function getCompletedLineCells(squares) {
   const xCells = new Set(), oCells = new Set()
   for (const line of WIN_LINES) {
@@ -60,19 +58,17 @@ function getCompletedLineCells(squares) {
   return { xCells, oCells }
 }
 
-function easyMove(squares, cpuMark) {
+function easyMove(squares) {
   const empty = squares.map((v, i) => v ? null : i).filter(i => i !== null)
   return empty[Math.floor(Math.random() * empty.length)] ?? -1
 }
 
 function mediumMove(squares, linesToWin, cpuMark, playerMark) {
-  // Try to win
   for (let i = 0; i < 27; i++) {
     if (squares[i]) continue
     const t = [...squares]; t[i] = cpuMark
     if (checkWinner(t, linesToWin)?.winner === cpuMark) return i
   }
-  // Block opponent win
   for (let i = 0; i < 27; i++) {
     if (squares[i]) continue
     const t = [...squares]; t[i] = playerMark
@@ -90,7 +86,7 @@ function mediumMove(squares, linesToWin, cpuMark, playerMark) {
     }
     if (s > best) { best = s; move = i }
   }
-  return move === -1 ? easyMove(squares, cpuMark) : move
+  return move === -1 ? easyMove(squares) : move
 }
 
 function minimaxAB(squares, isMax, alpha, beta, depth, linesToWin, cpuMark, playerMark) {
@@ -159,34 +155,13 @@ const LAYER_TINT = [
   'rgba(59,130,246,0.07)',
 ]
 
-function cellStyle(sq, xCells, oCells, sqIdx, playerTurn) {
-  const inXLine = xCells.has(sqIdx)
-  const inOLine = oCells.has(sqIdx)
-  const isEmpty = !sq && playerTurn
-
-  let border, background, color
-  if (inXLine) {
-    border = '2px solid #22c55e'
-    background = 'rgba(187,247,208,0.92)'
-    color = '#15803d'
-  } else if (inOLine) {
-    border = '2px solid #3b82f6'
-    background = 'rgba(219,234,254,0.92)'
-    color = '#1d4ed8'
-  } else if (sq === 'X') {
-    border = '2px solid rgba(230,57,70,0.45)'
-    background = 'rgba(254,226,226,0.88)'
-    color = '#e63946'
-  } else if (sq === 'O') {
-    border = '2px solid rgba(26,26,46,0.2)'
-    background = 'rgba(226,232,240,0.88)'
-    color = '#1a1a2e'
-  } else {
-    border = '2px solid rgba(26,26,46,0.1)'
-    background = 'rgba(255,255,255,0.78)'
-    color = '#1a1a2e'
-  }
-  return { border, background, color, cursor: isEmpty ? 'pointer' : 'default' }
+function cubeStyle(sq, xCells, oCells, sqIdx, playerTurn) {
+  const inXLine = xCells.has(sqIdx), inOLine = oCells.has(sqIdx)
+  if (inXLine) return { border: '2px solid #22c55e', background: 'rgba(187,247,208,0.92)', color: '#15803d' }
+  if (inOLine) return { border: '2px solid #3b82f6', background: 'rgba(219,234,254,0.92)', color: '#1d4ed8' }
+  if (sq === 'X') return { border: '2px solid rgba(230,57,70,0.45)', background: 'rgba(254,226,226,0.88)', color: '#e63946' }
+  if (sq === 'O') return { border: '2px solid rgba(26,26,46,0.2)',   background: 'rgba(226,232,240,0.88)', color: '#1a1a2e' }
+  return { border: '2px solid rgba(26,26,46,0.1)', background: 'rgba(255,255,255,0.78)', color: '#1a1a2e' }
 }
 
 function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
@@ -232,29 +207,20 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
 
   return (
     <div
-      style={{
-        perspective: '1000px',
-        width: GRID + 140, height: GRID + 140,
-        margin: 'auto',
-        cursor: dragRef.current ? 'grabbing' : 'grab',
-        userSelect: 'none',
-      }}
+      style={{ perspective: '1000px', width: GRID + 140, height: GRID + 140, margin: 'auto', userSelect: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
       <div style={{
-        width: GRID, height: GRID,
-        margin: 70,
-        position: 'relative',
+        width: GRID, height: GRID, margin: 70, position: 'relative',
         transformStyle: 'preserve-3d',
         transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
       }}>
         {[0, 1, 2].map(layer => (
           <div key={layer} style={{
-            position: 'absolute', top: 0, left: 0,
-            width: GRID, height: GRID,
+            position: 'absolute', top: 0, left: 0, width: GRID, height: GRID,
             transform: `translateZ(${(layer - 1) * LAYER_Z}px)`,
           }}>
             <div style={{
@@ -272,7 +238,8 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
               {Array.from({ length: 9 }, (_, i) => {
                 const sqIdx = layer * 9 + i
                 const sq = squares[sqIdx]
-                const s = cellStyle(sq, xCells, oCells, sqIdx, playerTurn)
+                const s = cubeStyle(sq, xCells, oCells, sqIdx, playerTurn)
+                const isEmpty = !sq && playerTurn
                 return (
                   <button key={i} onClick={() => onCellClick(sqIdx)} style={{
                     width: CELL, height: CELL,
@@ -280,7 +247,7 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 8,
                     border: s.border, background: s.background, color: s.color,
-                    cursor: s.cursor,
+                    cursor: isEmpty ? 'pointer' : 'default',
                     boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
                     transition: 'background 0.12s',
                   }}>
@@ -297,11 +264,9 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
 }
 
 // ── Layer View ───────────────────────────────────────────────
-function layerCellClass(sq, xCells, oCells, sqIdx, playerTurn) {
-  const inXLine = xCells.has(sqIdx)
-  const inOLine = oCells.has(sqIdx)
-  if (inXLine) return 'border-green-500 bg-green-50 text-green-700'
-  if (inOLine) return 'border-blue-500 bg-blue-50 text-blue-700'
+function layerClass(sq, xCells, oCells, sqIdx, playerTurn) {
+  if (xCells.has(sqIdx)) return 'border-green-500 bg-green-50 text-green-700'
+  if (oCells.has(sqIdx)) return 'border-blue-500 bg-blue-50 text-blue-700'
   if (sq === 'X') return 'text-accent border-accent/40 bg-accent/5'
   if (sq === 'O') return 'text-ink border-ink/30 bg-canvas'
   if (playerTurn) return 'border-ink/20 bg-white hover:bg-canvas hover:border-ink/40 cursor-pointer'
@@ -320,10 +285,8 @@ function LayerBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
               const sq = squares[sqIdx]
               return (
                 <button key={i} onClick={() => onCellClick(sqIdx)}
-                  className={[
-                    'w-16 h-16 text-2xl font-bold rounded-lg border-2 transition-all duration-150 flex items-center justify-center',
-                    layerCellClass(sq, xCells, oCells, sqIdx, playerTurn),
-                  ].join(' ')}>
+                  className={['w-16 h-16 text-2xl font-bold rounded-lg border-2 transition-all duration-150 flex items-center justify-center',
+                    layerClass(sq, xCells, oCells, sqIdx, playerTurn)].join(' ')}>
                   {sq}
                 </button>
               )
@@ -335,68 +298,129 @@ function LayerBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
   )
 }
 
-// ── Line progress indicator ──────────────────────────────────
+// ── Line progress ────────────────────────────────────────────
 function LineProgress({ squares, linesToWin, playerMark, cpuMark }) {
-  const xCount = WIN_LINES.filter(line => {
-    const [a, b, c] = line
-    return squares[a] === 'X' && squares[b] === 'X' && squares[c] === 'X'
-  }).length
-  const oCount = WIN_LINES.filter(line => {
-    const [a, b, c] = line
-    return squares[a] === 'O' && squares[b] === 'O' && squares[c] === 'O'
-  }).length
-
-  const playerCount = playerMark === 'X' ? xCount : oCount
-  const cpuCount    = cpuMark    === 'X' ? xCount : oCount
+  const count = (mark) => WIN_LINES.filter(([a, b, c]) =>
+    squares[a] === mark && squares[b] === mark && squares[c] === mark
+  ).length
+  const playerCount = count(playerMark)
+  const cpuCount    = count(cpuMark)
 
   return (
     <div className="flex gap-8 text-sm">
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-accent font-bold">You ({playerMark})</span>
-        <div className="flex gap-1">
-          {Array.from({ length: linesToWin }, (_, i) => (
-            <div key={i} className={[
-              'w-6 h-6 rounded border-2 flex items-center justify-center text-xs font-bold',
-              i < playerCount ? 'border-green-500 bg-green-50 text-green-700' : 'border-ink/20 bg-white text-ink/20'
-            ].join(' ')}>
-              {i < playerCount ? '✓' : '·'}
-            </div>
-          ))}
+      {[
+        { label: `You (${playerMark})`, n: playerCount, color: 'green' },
+        { label: `CPU (${cpuMark})`,    n: cpuCount,    color: 'blue'  },
+      ].map(({ label, n, color }) => (
+        <div key={label} className="flex flex-col items-center gap-1">
+          <span className={`font-bold ${color === 'green' ? 'text-green-600' : 'text-blue-600'}`}>{label}</span>
+          <div className="flex gap-1">
+            {Array.from({ length: linesToWin }, (_, i) => (
+              <div key={i} className={[
+                'w-6 h-6 rounded border-2 flex items-center justify-center text-xs font-bold',
+                i < n
+                  ? color === 'green' ? 'border-green-500 bg-green-50 text-green-700' : 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-ink/20 bg-white text-ink/20'
+              ].join(' ')}>
+                {i < n ? '✓' : '·'}
+              </div>
+            ))}
+          </div>
+          <span className="text-ink/40 text-xs">{n}/{linesToWin} lines</span>
         </div>
-        <span className="text-ink/40 text-xs">{playerCount}/{linesToWin} lines</span>
-      </div>
-      <div className="flex flex-col items-center gap-1">
-        <span className="font-bold">CPU ({cpuMark})</span>
-        <div className="flex gap-1">
-          {Array.from({ length: linesToWin }, (_, i) => (
-            <div key={i} className={[
-              'w-6 h-6 rounded border-2 flex items-center justify-center text-xs font-bold',
-              i < cpuCount ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-ink/20 bg-white text-ink/20'
-            ].join(' ')}>
-              {i < cpuCount ? '✓' : '·'}
-            </div>
-          ))}
+      ))}
+    </div>
+  )
+}
+
+// ── Config modal ─────────────────────────────────────────────
+function ConfigModal({ config, onChange, onPlay }) {
+  const { difficulty, linesToWin, computerFirst, viewMode } = config
+
+  function opt(label, value, current, key) {
+    const active = current === value
+    return (
+      <button key={value}
+        onClick={() => onChange({ ...config, [key]: value })}
+        className={['px-4 py-2 text-sm font-medium rounded-lg border transition-colors',
+          active ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
+        {label}
+      </button>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-6">
+        <h2 className="font-display text-xl font-bold text-ink text-center">New Game</h2>
+
+        {/* Who goes first */}
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">First move</span>
+          <div className="flex gap-2">
+            {opt('You', false, computerFirst, 'computerFirst')}
+            {opt('Computer', true,  computerFirst, 'computerFirst')}
+          </div>
         </div>
-        <span className="text-ink/40 text-xs">{cpuCount}/{linesToWin} lines</span>
+
+        {/* Difficulty */}
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Difficulty</span>
+          <div className="flex gap-2 flex-wrap">
+            {['Easy', 'Medium', 'Hard'].map(d => opt(d, d, difficulty, 'difficulty'))}
+          </div>
+        </div>
+
+        {/* Lines to win */}
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Lines to win</span>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map(n => opt(String(n), n, linesToWin, 'linesToWin'))}
+          </div>
+          <p className="text-xs text-ink/40">
+            {linesToWin === 1 && 'Classic — first line wins. Easy for player 1.'}
+            {linesToWin === 2 && 'Balanced — need 2 lines. Recommended.'}
+            {linesToWin === 3 && 'Challenging — games tend to go long.'}
+            {linesToWin === 4 && 'Expert — tip: the center cell touches 13 lines! 🔥'}
+          </p>
+        </div>
+
+        {/* View mode */}
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Board view</span>
+          <div className="flex gap-2">
+            {opt('☰ Layers', 'layer', viewMode, 'viewMode')}
+            {opt('⬡ Cube',   'cube',  viewMode, 'viewMode')}
+          </div>
+        </div>
+
+        <button
+          onClick={onPlay}
+          className="w-full bg-accent text-white font-bold py-3 rounded-xl text-base hover:opacity-90 transition-opacity mt-2"
+        >
+          Play →
+        </button>
       </div>
     </div>
   )
 }
 
 // ── Main component ───────────────────────────────────────────
-const DIFFICULTIES  = ['Easy', 'Medium', 'Hard']
-const LINES_OPTIONS = [1, 2, 3, 4]
+const DEFAULT_CONFIG = {
+  difficulty:    'Hard',
+  linesToWin:    2,
+  computerFirst: false,
+  viewMode:      'layer',
+}
 
 export default function TicTacToe3D() {
-  const [squares, setSquares]         = useState(Array(27).fill(null))
-  const [difficulty, setDifficulty]   = useState('Hard')
-  const [linesToWin, setLinesToWin]   = useState(2)
-  const [computerFirst, setComputerFirst] = useState(false)
-  const [thinking, setThinking]       = useState(false)
-  const [viewMode, setViewMode]       = useState('layer')
+  const [phase, setPhase]     = useState('lobby') // lobby | playing
+  const [config, setConfig]   = useState(DEFAULT_CONFIG)
+  const [squares, setSquares] = useState(Array(27).fill(null))
+  const [thinking, setThinking] = useState(false)
   const pendingRef = useRef(false)
 
-  // Who plays which mark
+  const { difficulty, linesToWin, computerFirst, viewMode } = config
   const playerMark = computerFirst ? 'O' : 'X'
   const cpuMark    = computerFirst ? 'X' : 'O'
 
@@ -405,22 +429,21 @@ export default function TicTacToe3D() {
   const draw     = !winner && squares.every(Boolean)
   const gameOver = winner || draw
 
-  // CPU goes on even move counts when computerFirst, odd otherwise
-  const moveCount       = squares.filter(Boolean).length
-  const isComputerTurn  = !gameOver && !thinking && (moveCount % 2 === (computerFirst ? 0 : 1))
-  const playerTurn      = !gameOver && !thinking && !isComputerTurn
+  const moveCount      = squares.filter(Boolean).length
+  const isComputerTurn = !gameOver && !thinking && (moveCount % 2 === (computerFirst ? 0 : 1))
+  const playerTurn     = !gameOver && !thinking && !isComputerTurn
 
-  // Completed line cells for live highlighting
   const { xCells, oCells } = getCompletedLineCells(squares)
 
   useEffect(() => {
+    if (phase !== 'playing') return
     if (isComputerTurn && !pendingRef.current) {
       pendingRef.current = true
       setThinking(true)
       const timer = setTimeout(() => {
         let move = -1
         const copy = [...squares]
-        if (difficulty === 'Easy')        move = easyMove(copy, cpuMark)
+        if (difficulty === 'Easy')        move = easyMove(copy)
         else if (difficulty === 'Medium') move = mediumMove(copy, linesToWin, cpuMark, playerMark)
         else                              move = hardMove(copy, linesToWin, cpuMark, playerMark)
         if (move !== -1) {
@@ -432,7 +455,7 @@ export default function TicTacToe3D() {
       }, 150)
       return () => { clearTimeout(timer); pendingRef.current = false }
     }
-  }, [squares, gameOver]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [squares, gameOver, phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleClick(i) {
     if (!playerTurn || squares[i]) return
@@ -440,108 +463,52 @@ export default function TicTacToe3D() {
     setSquares(next)
   }
 
-  function reset() {
+  function handlePlay() {
     pendingRef.current = false
     setSquares(Array(27).fill(null))
     setThinking(false)
+    setPhase('playing')
   }
 
-  function handleDifficulty(d) {
-    setDifficulty(d)
-    pendingRef.current = false
-    setSquares(Array(27).fill(null))
-    setThinking(false)
-  }
-
-  function handleLinesToWin(n) {
-    setLinesToWin(n)
-    pendingRef.current = false
-    setSquares(Array(27).fill(null))
-    setThinking(false)
-  }
-
-  function handleComputerFirst(val) {
-    setComputerFirst(val)
-    pendingRef.current = false
-    setSquares(Array(27).fill(null))
-    setThinking(false)
+  function handlePlayAgain() {
+    setPhase('lobby')
   }
 
   let status
-  if (winner === playerMark)      status = 'You win! 🎉'
-  else if (winner === cpuMark)    status = 'Computer wins 😔'
-  else if (draw)                  status = 'Draw 🤝'
-  else if (thinking)              status = 'Computer thinking...'
-  else                            status = `Your turn — ${difficulty} mode`
+  if (winner === playerMark)   status = 'You win! 🎉'
+  else if (winner === cpuMark) status = 'Computer wins 😔'
+  else if (draw)               status = 'Draw 🤝'
+  else if (thinking)           status = 'Computer thinking...'
+  else                         status = 'Your turn'
 
   return (
     <div className="min-h-screen bg-paper font-body">
-      <header className="border-b border-ink/10 bg-canvas px-6 py-6">
+      <header className="border-b border-ink/10 bg-canvas px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <a href="#/" className="text-ink/50 hover:text-accent transition-colors text-sm font-medium">← Back</a>
-          <h1 className="font-display text-2xl font-bold text-ink">Tic-Tac-Three-D</h1>
+          <h1 className="font-display text-2xl font-bold text-ink flex-1">Tic-Tac-Three-D</h1>
+          {phase === 'playing' && (
+            <button
+              onClick={handlePlayAgain}
+              className="text-sm text-ink/50 hover:text-accent transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent"
+            >
+              ⚙ Settings
+            </button>
+          )}
         </div>
       </header>
 
+      {/* Config modal — shown in lobby phase */}
+      {phase === 'lobby' && (
+        <ConfigModal config={config} onChange={setConfig} onPlay={handlePlay} />
+      )}
+
       <main className="max-w-4xl mx-auto px-6 py-10 flex flex-col items-center gap-8">
-        {/* Controls row */}
-        <div className="flex flex-wrap justify-center gap-4">
-          {/* View toggle */}
-          <div className="flex rounded-lg border border-ink/20 overflow-hidden">
-            {[['layer', '☰ Layers'], ['cube', '⬡ Cube']].map(([v, label]) => (
-              <button key={v} onClick={() => setViewMode(v)}
-                className={['px-4 py-1.5 text-sm font-medium transition-colors',
-                  viewMode === v ? 'bg-ink text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Who goes first */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-ink/50 font-medium">First:</span>
-            <div className="flex rounded-lg border border-ink/20 overflow-hidden">
-              {[['you', 'You'], ['cpu', 'Computer']].map(([v, label]) => (
-                <button key={v} onClick={() => handleComputerFirst(v === 'cpu')}
-                  className={['px-4 py-1.5 text-sm font-medium transition-colors',
-                    (v === 'cpu') === computerFirst ? 'bg-ink text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Difficulty */}
-          <div className="flex rounded-lg border border-ink/20 overflow-hidden">
-            {DIFFICULTIES.map(d => (
-              <button key={d} onClick={() => handleDifficulty(d)}
-                className={['px-4 py-1.5 text-sm font-medium transition-colors',
-                  difficulty === d ? 'bg-ink text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
-                {d}
-              </button>
-            ))}
-          </div>
-
-          {/* Lines to win */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-ink/50 font-medium">Lines to win:</span>
-            <div className="flex rounded-lg border border-ink/20 overflow-hidden">
-              {LINES_OPTIONS.map(n => (
-                <button key={n} onClick={() => handleLinesToWin(n)}
-                  className={['px-4 py-1.5 text-sm font-medium transition-colors',
-                    linesToWin === n ? 'bg-accent text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
         {/* Status */}
         <p className="text-lg font-medium text-ink/70">{status}</p>
 
         {/* Line progress */}
-        {!gameOver && (
+        {phase === 'playing' && !gameOver && (
           <LineProgress squares={squares} linesToWin={linesToWin} playerMark={playerMark} cpuMark={cpuMark} />
         )}
 
@@ -555,21 +522,32 @@ export default function TicTacToe3D() {
           <LayerBoard squares={squares} xCells={xCells} oCells={oCells} playerTurn={playerTurn} onCellClick={handleClick} />
         )}
 
+        {/* Game over actions */}
         {gameOver && (
-          <button onClick={reset} className="px-8 py-3 bg-ink text-paper font-medium rounded-lg hover:bg-ink/80 transition-colors">
-            Play again
-          </button>
+          <div className="flex flex-col items-center gap-3">
+            <button
+              onClick={handlePlay}
+              className="px-8 py-3 bg-accent text-paper font-medium rounded-lg hover:opacity-90 transition-opacity"
+            >
+              Play again
+            </button>
+            <button
+              onClick={handlePlayAgain}
+              className="text-sm text-ink/50 hover:text-accent transition-colors"
+            >
+              Change settings
+            </button>
+          </div>
         )}
 
-        <div className="flex gap-6 text-sm text-ink/50">
-          <span><span className="text-accent font-bold">{playerMark}</span> — You</span>
-          <span><span className="font-bold">{cpuMark}</span> — Computer</span>
-        </div>
-        <p className="text-xs text-ink/30 text-center max-w-sm">
-          49 winning lines — rows, columns, pillars, and diagonals across all 3 layers.
-          First to complete <strong>{linesToWin}</strong> line{linesToWin > 1 ? 's' : ''} wins.
-          {linesToWin === 4 && ' 🔥 Tip: the center cell sits in 13 lines!'}
-        </p>
+        {/* Legend */}
+        {phase === 'playing' && (
+          <div className="flex gap-6 text-sm text-ink/50">
+            <span><span className="text-accent font-bold">{playerMark}</span> — You</span>
+            <span><span className="font-bold">{cpuMark}</span> — Computer</span>
+            <span className="text-ink/30">49 win lines · {linesToWin} to win</span>
+          </div>
+        )}
       </main>
     </div>
   )
