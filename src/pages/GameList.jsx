@@ -1,5 +1,13 @@
 const featuredGames = [
   {
+    id: 'tspgame',
+    name: 'TSP Game',
+    description: 'Find the shortest route visiting all cities and returning home. Beat the optimal solution!',
+    emoji: '🗺️',
+    hash: '#/tspgame',
+    featured: true,
+  },
+  {
     id: 'mapguesser',
     name: 'Map Guesser',
     description: 'Zoom in on a mystery city. Guess where it is on the world map. Score based on distance.',
