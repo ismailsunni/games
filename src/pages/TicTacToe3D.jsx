@@ -585,6 +585,14 @@ export default function TicTacToe3D() {
   }
 
   function handleSettings() {
+    // Count as a loss only if the player made at least one move
+    const playerMoves = squares.filter(v => v === playerMark).length
+    if (playerMoves > 0) {
+      const newStats = loadStats()
+      newStats.losses++
+      saveStats(newStats)
+      setStats(newStats)
+    }
     clearGameState()
     setSavedGame(null)
     pendingRef.current = false
@@ -615,10 +623,10 @@ export default function TicTacToe3D() {
             className="text-sm text-ink/50 hover:text-accent transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
             📊 Stats
           </button>
-          {phase === 'playing' && (
+          {phase === 'playing' && !gameOver && (
             <button onClick={handleSettings}
-              className="text-sm text-ink/50 hover:text-accent transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
-              ⚙
+              className="text-sm text-ink/50 hover:text-red-400 transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-red-300 shrink-0">
+              {moveCount === 0 ? 'New Game' : 'Give Up'}
             </button>
           )}
         </div>
