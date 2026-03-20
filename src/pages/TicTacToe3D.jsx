@@ -58,6 +58,7 @@ function getCompletedLineCells(squares) {
   return { xCells, oCells }
 }
 
+// ── AI ───────────────────────────────────────────────────────
 function easyMove(squares) {
   const empty = squares.map((v, i) => v ? null : i).filter(i => i !== null)
   return empty[Math.floor(Math.random() * empty.length)] ?? -1
@@ -82,7 +83,7 @@ function mediumMove(squares, linesToWin, cpuMark, playerMark) {
     for (const line of WIN_LINES) {
       const vals = line.map(j => t[j])
       if (!vals.includes(playerMark)) s += vals.filter(v => v === cpuMark).length * 2
-      if (!vals.includes(cpuMark)) s -= vals.filter(v => v === playerMark).length
+      if (!vals.includes(cpuMark))    s -= vals.filter(v => v === playerMark).length
     }
     if (s > best) { best = s; move = i }
   }
@@ -91,15 +92,15 @@ function mediumMove(squares, linesToWin, cpuMark, playerMark) {
 
 function minimaxAB(squares, isMax, alpha, beta, depth, linesToWin, cpuMark, playerMark) {
   const result = checkWinner(squares, linesToWin)
-  if (result?.winner === cpuMark) return 10 + depth
+  if (result?.winner === cpuMark)    return 10 + depth
   if (result?.winner === playerMark) return -10 - depth
   if (squares.every(Boolean)) return 0
   if (depth <= 0) {
     let s = 0
     for (const line of WIN_LINES) {
       const vals = line.map(i => squares[i])
-      if (!vals.includes(playerMark) && vals.includes(cpuMark)) s += vals.filter(v => v === cpuMark).length
-      if (!vals.includes(cpuMark) && vals.includes(playerMark)) s -= vals.filter(v => v === playerMark).length
+      if (!vals.includes(playerMark) && vals.includes(cpuMark))    s += vals.filter(v => v === cpuMark).length
+      if (!vals.includes(cpuMark)    && vals.includes(playerMark)) s -= vals.filter(v => v === playerMark).length
     }
     return s
   }
@@ -143,6 +144,36 @@ function hardMove(squares, linesToWin, cpuMark, playerMark) {
   return move
 }
 
+// ── Storage ──────────────────────────────────────────────────
+const STORAGE_STATE = 'ttt3d_state'
+const STORAGE_STATS = 'ttt3d_stats'
+
+function loadStats() {
+  try {
+    const s = localStorage.getItem(STORAGE_STATS)
+    return s ? JSON.parse(s) : { wins: 0, losses: 0, draws: 0 }
+  } catch { return { wins: 0, losses: 0, draws: 0 } }
+}
+
+function saveStats(stats) {
+  localStorage.setItem(STORAGE_STATS, JSON.stringify(stats))
+}
+
+function loadGameState() {
+  try {
+    const s = localStorage.getItem(STORAGE_STATE)
+    return s ? JSON.parse(s) : null
+  } catch { return null }
+}
+
+function saveGameState(state) {
+  localStorage.setItem(STORAGE_STATE, JSON.stringify(state))
+}
+
+function clearGameState() {
+  localStorage.removeItem(STORAGE_STATE)
+}
+
 // ── Cube View ────────────────────────────────────────────────
 const CELL    = 56
 const GAP     = 7
@@ -155,10 +186,9 @@ const LAYER_TINT = [
   'rgba(59,130,246,0.07)',
 ]
 
-function cubeStyle(sq, xCells, oCells, sqIdx, playerTurn) {
-  const inXLine = xCells.has(sqIdx), inOLine = oCells.has(sqIdx)
-  if (inXLine) return { border: '2px solid #22c55e', background: 'rgba(187,247,208,0.92)', color: '#15803d' }
-  if (inOLine) return { border: '2px solid #3b82f6', background: 'rgba(219,234,254,0.92)', color: '#1d4ed8' }
+function cubeStyle(sq, xCells, oCells, sqIdx) {
+  if (xCells.has(sqIdx)) return { border: '2px solid #22c55e', background: 'rgba(187,247,208,0.92)', color: '#15803d' }
+  if (oCells.has(sqIdx)) return { border: '2px solid #3b82f6', background: 'rgba(219,234,254,0.92)', color: '#1d4ed8' }
   if (sq === 'X') return { border: '2px solid rgba(230,57,70,0.45)', background: 'rgba(254,226,226,0.88)', color: '#e63946' }
   if (sq === 'O') return { border: '2px solid rgba(26,26,46,0.2)',   background: 'rgba(226,232,240,0.88)', color: '#1a1a2e' }
   return { border: '2px solid rgba(26,26,46,0.1)', background: 'rgba(255,255,255,0.78)', color: '#1a1a2e' }
@@ -208,10 +238,8 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
   return (
     <div
       style={{ perspective: '1000px', width: GRID + 140, height: GRID + 140, margin: 'auto', userSelect: 'none' }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
     >
       <div style={{
         width: GRID, height: GRID, margin: 70, position: 'relative',
@@ -224,10 +252,8 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
             transform: `translateZ(${(layer - 1) * LAYER_Z}px)`,
           }}>
             <div style={{
-              position: 'absolute', inset: -6,
-              background: LAYER_TINT[layer],
-              border: '1px solid rgba(26,26,46,0.08)',
-              borderRadius: 12, pointerEvents: 'none',
+              position: 'absolute', inset: -6, background: LAYER_TINT[layer],
+              border: '1px solid rgba(26,26,46,0.08)', borderRadius: 12, pointerEvents: 'none',
             }} />
             <div style={{
               display: 'grid',
@@ -238,18 +264,14 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
               {Array.from({ length: 9 }, (_, i) => {
                 const sqIdx = layer * 9 + i
                 const sq = squares[sqIdx]
-                const s = cubeStyle(sq, xCells, oCells, sqIdx, playerTurn)
-                const isEmpty = !sq && playerTurn
+                const s = cubeStyle(sq, xCells, oCells, sqIdx)
                 return (
                   <button key={i} onClick={() => onCellClick(sqIdx)} style={{
-                    width: CELL, height: CELL,
-                    fontSize: 20, fontWeight: 800,
+                    width: CELL, height: CELL, fontSize: 20, fontWeight: 800,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: 8,
-                    border: s.border, background: s.background, color: s.color,
-                    cursor: isEmpty ? 'pointer' : 'default',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-                    transition: 'background 0.12s',
+                    borderRadius: 8, border: s.border, background: s.background, color: s.color,
+                    cursor: !sq && playerTurn ? 'pointer' : 'default',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.07)', transition: 'background 0.12s',
                   }}>
                     {sq}
                   </button>
@@ -313,7 +335,7 @@ function LineProgress({ squares, linesToWin, playerMark, cpuMark }) {
         { label: `CPU (${cpuMark})`,    n: cpuCount,    color: 'blue'  },
       ].map(({ label, n, color }) => (
         <div key={label} className="flex flex-col items-center gap-1">
-          <span className={`font-bold ${color === 'green' ? 'text-green-600' : 'text-blue-600'}`}>{label}</span>
+          <span className={`font-bold text-xs ${color === 'green' ? 'text-green-600' : 'text-blue-600'}`}>{label}</span>
           <div className="flex gap-1">
             {Array.from({ length: linesToWin }, (_, i) => (
               <div key={i} className={[
@@ -326,7 +348,7 @@ function LineProgress({ squares, linesToWin, playerMark, cpuMark }) {
               </div>
             ))}
           </div>
-          <span className="text-ink/40 text-xs">{n}/{linesToWin} lines</span>
+          <span className="text-ink/40 text-xs">{n}/{linesToWin}</span>
         </div>
       ))}
     </div>
@@ -334,13 +356,13 @@ function LineProgress({ squares, linesToWin, playerMark, cpuMark }) {
 }
 
 // ── Config modal ─────────────────────────────────────────────
-function ConfigModal({ config, onChange, onPlay }) {
+function ConfigModal({ config, onChange, onPlay, hasSavedGame, onContinue }) {
   const { difficulty, linesToWin, computerFirst, viewMode } = config
 
   function opt(label, value, current, key) {
     const active = current === value
     return (
-      <button key={value}
+      <button key={String(value)}
         onClick={() => onChange({ ...config, [key]: value })}
         className={['px-4 py-2 text-sm font-medium rounded-lg border transition-colors',
           active ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
@@ -351,42 +373,38 @@ function ConfigModal({ config, onChange, onPlay }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-6">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5">
         <h2 className="font-display text-xl font-bold text-ink text-center">New Game</h2>
 
-        {/* Who goes first */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">First move</span>
           <div className="flex gap-2">
             {opt('You', false, computerFirst, 'computerFirst')}
-            {opt('Computer', true,  computerFirst, 'computerFirst')}
+            {opt('Computer', true, computerFirst, 'computerFirst')}
           </div>
         </div>
 
-        {/* Difficulty */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Difficulty</span>
           <div className="flex gap-2 flex-wrap">
             {['Easy', 'Medium', 'Hard'].map(d => opt(d, d, difficulty, 'difficulty'))}
           </div>
         </div>
 
-        {/* Lines to win */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Lines to win</span>
           <div className="flex gap-2">
             {[1, 2, 3, 4].map(n => opt(String(n), n, linesToWin, 'linesToWin'))}
           </div>
-          <p className="text-xs text-ink/40">
-            {linesToWin === 1 && 'Classic — first line wins. Easy for player 1.'}
-            {linesToWin === 2 && 'Balanced — need 2 lines. Recommended.'}
+          <p className="text-xs text-ink/40 min-h-[1rem]">
+            {linesToWin === 1 && 'Classic — first line wins. First player advantage.'}
+            {linesToWin === 2 && 'Balanced — need 2 lines. Recommended ✓'}
             {linesToWin === 3 && 'Challenging — games tend to go long.'}
-            {linesToWin === 4 && 'Expert — tip: the center cell touches 13 lines! 🔥'}
+            {linesToWin === 4 && 'Expert — center cell touches 13 lines! 🔥'}
           </p>
         </div>
 
-        {/* View mode */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Board view</span>
           <div className="flex gap-2">
             {opt('☰ Layers', 'layer', viewMode, 'viewMode')}
@@ -394,11 +412,68 @@ function ConfigModal({ config, onChange, onPlay }) {
           </div>
         </div>
 
-        <button
-          onClick={onPlay}
-          className="w-full bg-accent text-white font-bold py-3 rounded-xl text-base hover:opacity-90 transition-opacity mt-2"
-        >
-          Play →
+        <div className="flex flex-col gap-2 mt-1">
+          <button onClick={onPlay}
+            className="w-full bg-accent text-white font-bold py-3 rounded-xl text-base hover:opacity-90 transition-opacity">
+            Play →
+          </button>
+          {hasSavedGame && (
+            <button onClick={onContinue}
+              className="w-full border border-ink/20 text-ink font-medium py-2.5 rounded-xl text-sm hover:border-accent hover:text-accent transition-colors">
+              Continue saved game
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Stats modal ──────────────────────────────────────────────
+function StatsModal({ stats, onClose, onReset }) {
+  const total = stats.wins + stats.losses + stats.draws
+  const winPct = total > 0 ? Math.round((stats.wins / total) * 100) : 0
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm px-4"
+      onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 flex flex-col gap-5"
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-bold text-ink">Stats</h2>
+          <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">✕</button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { label: 'Wins',   value: stats.wins,   color: 'text-green-600' },
+            { label: 'Losses', value: stats.losses, color: 'text-red-500'   },
+            { label: 'Draws',  value: stats.draws,  color: 'text-ink/60'    },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-paper rounded-xl p-3 flex flex-col gap-0.5">
+              <span className={`text-3xl font-bold ${color}`}>{value}</span>
+              <span className="text-xs text-ink/50">{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between text-sm">
+            <span className="text-ink/60">Win rate</span>
+            <span className="font-bold text-ink">{winPct}%</span>
+          </div>
+          <div className="w-full bg-ink/10 rounded-full h-2">
+            <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${winPct}%` }} />
+          </div>
+          <div className="flex justify-between text-xs text-ink/40">
+            <span>{total} game{total !== 1 ? 's' : ''} played</span>
+            <span>{stats.draws} draw{stats.draws !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
+        <button onClick={() => { onReset(); onClose() }}
+          className="text-xs text-ink/30 hover:text-red-400 transition-colors text-center">
+          Reset stats
         </button>
       </div>
     </div>
@@ -406,18 +481,16 @@ function ConfigModal({ config, onChange, onPlay }) {
 }
 
 // ── Main component ───────────────────────────────────────────
-const DEFAULT_CONFIG = {
-  difficulty:    'Hard',
-  linesToWin:    2,
-  computerFirst: false,
-  viewMode:      'layer',
-}
+const DEFAULT_CONFIG = { difficulty: 'Hard', linesToWin: 2, computerFirst: false, viewMode: 'layer' }
 
 export default function TicTacToe3D() {
-  const [phase, setPhase]     = useState('lobby') // lobby | playing
-  const [config, setConfig]   = useState(DEFAULT_CONFIG)
-  const [squares, setSquares] = useState(Array(27).fill(null))
+  const [phase, setPhase]       = useState('lobby')
+  const [config, setConfig]     = useState(DEFAULT_CONFIG)
+  const [squares, setSquares]   = useState(Array(27).fill(null))
   const [thinking, setThinking] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [stats, setStats]       = useState(() => loadStats())
+  const [savedGame, setSavedGame] = useState(() => loadGameState())
   const pendingRef = useRef(false)
 
   const { difficulty, linesToWin, computerFirst, viewMode } = config
@@ -435,6 +508,30 @@ export default function TicTacToe3D() {
 
   const { xCells, oCells } = getCompletedLineCells(squares)
 
+  // Persist game state whenever board changes mid-game
+  useEffect(() => {
+    if (phase === 'playing' && !gameOver) {
+      const state = { squares, config }
+      saveGameState(state)
+      setSavedGame(state)
+    }
+  }, [squares, phase]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clear saved game on game over and update stats
+  useEffect(() => {
+    if (phase === 'playing' && gameOver) {
+      clearGameState()
+      setSavedGame(null)
+      const newStats = loadStats()
+      if (winner === playerMark) newStats.wins++
+      else if (winner === cpuMark) newStats.losses++
+      else newStats.draws++
+      saveStats(newStats)
+      setStats(newStats)
+    }
+  }, [gameOver]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // AI move
   useEffect(() => {
     if (phase !== 'playing') return
     if (isComputerTurn && !pendingRef.current) {
@@ -463,15 +560,42 @@ export default function TicTacToe3D() {
     setSquares(next)
   }
 
-  function handlePlay() {
+  function startFresh() {
     pendingRef.current = false
     setSquares(Array(27).fill(null))
     setThinking(false)
     setPhase('playing')
   }
 
+  function continueSaved() {
+    const s = savedGame
+    if (!s) return
+    pendingRef.current = false
+    setConfig(s.config)
+    setSquares(s.squares)
+    setThinking(false)
+    setPhase('playing')
+  }
+
   function handlePlayAgain() {
+    pendingRef.current = false
+    setSquares(Array(27).fill(null))
+    setThinking(false)
+    setPhase('playing')
+  }
+
+  function handleSettings() {
+    clearGameState()
+    setSavedGame(null)
+    pendingRef.current = false
+    setThinking(false)
     setPhase('lobby')
+  }
+
+  function resetStats() {
+    const fresh = { wins: 0, losses: 0, draws: 0 }
+    saveStats(fresh)
+    setStats(fresh)
   }
 
   let status
@@ -487,20 +611,30 @@ export default function TicTacToe3D() {
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <a href="#/" className="text-ink/50 hover:text-accent transition-colors text-sm font-medium">← Back</a>
           <h1 className="font-display text-2xl font-bold text-ink flex-1">Tic-Tac-Three-D</h1>
+          <button onClick={() => setShowStats(true)}
+            className="text-sm text-ink/50 hover:text-accent transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent">
+            📊 Stats
+          </button>
           {phase === 'playing' && (
-            <button
-              onClick={handlePlayAgain}
-              className="text-sm text-ink/50 hover:text-accent transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent"
-            >
+            <button onClick={handleSettings}
+              className="text-sm text-ink/50 hover:text-accent transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent">
               ⚙ Settings
             </button>
           )}
         </div>
       </header>
 
-      {/* Config modal — shown in lobby phase */}
+      {/* Modals */}
       {phase === 'lobby' && (
-        <ConfigModal config={config} onChange={setConfig} onPlay={handlePlay} />
+        <ConfigModal
+          config={config} onChange={setConfig}
+          onPlay={startFresh}
+          hasSavedGame={!!savedGame}
+          onContinue={continueSaved}
+        />
+      )}
+      {showStats && (
+        <StatsModal stats={stats} onClose={() => setShowStats(false)} onReset={resetStats} />
       )}
 
       <main className="max-w-4xl mx-auto px-6 py-10 flex flex-col items-center gap-8">
@@ -510,6 +644,19 @@ export default function TicTacToe3D() {
         {/* Line progress */}
         {phase === 'playing' && !gameOver && (
           <LineProgress squares={squares} linesToWin={linesToWin} playerMark={playerMark} cpuMark={cpuMark} />
+        )}
+
+        {/* View toggle — available during play */}
+        {phase === 'playing' && (
+          <div className="flex rounded-lg border border-ink/20 overflow-hidden">
+            {[['layer', '☰ Layers'], ['cube', '⬡ Cube']].map(([v, label]) => (
+              <button key={v} onClick={() => setConfig(c => ({ ...c, viewMode: v }))}
+                className={['px-4 py-1.5 text-sm font-medium transition-colors',
+                  viewMode === v ? 'bg-ink text-paper' : 'bg-paper text-ink/60 hover:bg-canvas'].join(' ')}>
+                {label}
+              </button>
+            ))}
+          </div>
         )}
 
         {/* Board */}
@@ -522,19 +669,15 @@ export default function TicTacToe3D() {
           <LayerBoard squares={squares} xCells={xCells} oCells={oCells} playerTurn={playerTurn} onCellClick={handleClick} />
         )}
 
-        {/* Game over actions */}
+        {/* Game over */}
         {gameOver && (
           <div className="flex flex-col items-center gap-3">
-            <button
-              onClick={handlePlay}
-              className="px-8 py-3 bg-accent text-paper font-medium rounded-lg hover:opacity-90 transition-opacity"
-            >
+            <button onClick={handlePlayAgain}
+              className="px-8 py-3 bg-accent text-paper font-medium rounded-lg hover:opacity-90 transition-opacity">
               Play again
             </button>
-            <button
-              onClick={handlePlayAgain}
-              className="text-sm text-ink/50 hover:text-accent transition-colors"
-            >
+            <button onClick={handleSettings}
+              className="text-sm text-ink/50 hover:text-accent transition-colors">
               Change settings
             </button>
           </div>
@@ -542,10 +685,10 @@ export default function TicTacToe3D() {
 
         {/* Legend */}
         {phase === 'playing' && (
-          <div className="flex gap-6 text-sm text-ink/50">
-            <span><span className="text-accent font-bold">{playerMark}</span> — You</span>
-            <span><span className="font-bold">{cpuMark}</span> — Computer</span>
-            <span className="text-ink/30">49 win lines · {linesToWin} to win</span>
+          <div className="flex gap-6 text-sm text-ink/40">
+            <span><span className="text-accent font-bold">{playerMark}</span> You</span>
+            <span><span className="font-bold text-ink/60">{cpuMark}</span> CPU · {difficulty}</span>
+            <span>{linesToWin} line{linesToWin > 1 ? 's' : ''} to win</span>
           </div>
         )}
       </main>
