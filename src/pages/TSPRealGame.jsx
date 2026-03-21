@@ -666,7 +666,7 @@ export default function TSPRealGame() {
       {/* Header */}
       <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-2 shrink-0 z-10">
         <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Gallery</a>
-        <h1 className="font-display text-lg font-bold text-ink flex-1">🗺️ TSP {CITY_CONFIG[city].label}</h1>
+        <h1 className="font-display text-lg font-bold text-ink flex-1">🗺️ TSP Cities</h1>
         {phase !== 'home' && (
           <button onClick={() => setShowStats(true)}
             className="text-sm text-ink/50 hover:text-accent font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
@@ -700,7 +700,7 @@ export default function TSPRealGame() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-6">
               <div className="text-center">
                 <div className="text-5xl mb-2">🗺️</div>
-                <h1 className="text-2xl font-bold text-ink">TSP Challenge</h1>
+                <h1 className="text-2xl font-bold text-ink">TSP Cities</h1>
                 <p className="text-sm text-ink/50 mt-1">🇸🇮 Ljubljana · 🇩🇪 München</p>
               </div>
               <div className="flex flex-col gap-3 w-full max-w-xs">
