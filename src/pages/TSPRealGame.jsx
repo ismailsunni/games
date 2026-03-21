@@ -78,10 +78,13 @@ const LJ_EXTENT  = transformExtent([14.41, 45.98, 14.62, 46.12], 'EPSG:4326', 'E
 
 // ── Map component ─────────────────────────────────────────────────────────────
 function GameMap({ landmarks, userRoute, onLandmarkClick, phase }) {
-  const mapRef    = useRef(null)
-  const olMapRef  = useRef(null)
-  const routeSrc  = useRef(new VectorSource())
-  const markerSrc = useRef(new VectorSource())
+  const mapRef       = useRef(null)
+  const olMapRef     = useRef(null)
+  const routeSrc     = useRef(new VectorSource())
+  const markerSrc    = useRef(new VectorSource())
+  // Keep callback ref fresh so OL click handler always calls latest version
+  const onClickRef   = useRef(onLandmarkClick)
+  useEffect(() => { onClickRef.current = onLandmarkClick }, [onLandmarkClick])
 
   // Init map once
   useEffect(() => {
@@ -109,7 +112,7 @@ function GameMap({ landmarks, userRoute, onLandmarkClick, phase }) {
     map.on('click', (e) => {
       const feature = map.forEachFeatureAtPixel(e.pixel, f => f)
       if (feature?.get('lmId') !== undefined) {
-        onLandmarkClick(feature.get('lmIdx'))
+        onClickRef.current(feature.get('lmIdx'))
       }
     })
 
