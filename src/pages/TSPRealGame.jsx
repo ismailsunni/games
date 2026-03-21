@@ -171,11 +171,24 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
         }),
         text: new Text({
           text: label,
-          font: 'bold 10px sans-serif',
+          font: 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           fill: new Fill({ color: textColor }),
         }),
       }))
       markerSrc.current.addFeature(f)
+
+      // Pulsing dashed ring for unvisited, non-current landmarks during playing
+      if (phase === 'playing' && !visited && !isCurrent) {
+        const ring = new Feature({ geometry: new Point(fromLonLat([lm.lon, lm.lat])) })
+        ring.setStyle(new Style({
+          image: new CircleStyle({
+            radius: 28,
+            fill: new Fill({ color: 'transparent' }),
+            stroke: new Stroke({ color: '#6366f1', width: 1.5, lineDash: [4, 4] }),
+          })
+        }))
+        markerSrc.current.addFeature(ring)
+      }
     })
 
     // Draw user route — red (real street geometry when available, dashed straight line as placeholder)
@@ -262,6 +275,13 @@ function loadStats() {
 }
 function saveStats(s) { localStorage.setItem('tsp_real_stats', JSON.stringify(s)) }
 
+function loadSavedGame() {
+  try { return JSON.parse(localStorage.getItem('tsp_real_state')) || null }
+  catch { return null }
+}
+function persistGame(state) { localStorage.setItem('tsp_real_state', JSON.stringify(state)) }
+function clearSavedGame() { localStorage.removeItem('tsp_real_state') }
+
 // ── Main Game ─────────────────────────────────────────────────────────────────
 export default function TSPRealGame() {
   const [allLandmarks, setAllLandmarks]       = useState([])
@@ -276,6 +296,8 @@ export default function TSPRealGame() {
   const [loadError, setLoadError]             = useState('')
   const [showStats, setShowStats]             = useState(false)
   const [routeGeomMap, setRouteGeomMap]       = useState({})
+  const [resultCollapsed, setResultCollapsed] = useState(false)
+  const [savedGame, setSavedGame]             = useState(() => loadSavedGame())
 
   // Map ref exposed upward for zoom-to-fit
   const olMapRef = useRef(null)
@@ -298,6 +320,11 @@ export default function TSPRealGame() {
       setPreviewLandmarks(shuffle(allLandmarks).slice(0, nodeCount))
     }
   }, [nodeCount, allLandmarks])
+
+  // Reset result collapse when entering result phase
+  useEffect(() => {
+    if (phase === 'result') setResultCollapsed(false)
+  }, [phase])
 
   const rerollLandmarks = useCallback(() => {
     if (allLandmarks.length > 0) {
@@ -348,6 +375,8 @@ export default function TSPRealGame() {
     })
 
     const opt = solveHeldKarp(matrix, n)
+    clearSavedGame()
+    setSavedGame(null)
     setLandmarks(picked)
     setDistMatrix(matrix)
     setOptimal(opt)
@@ -392,7 +421,11 @@ export default function TSPRealGame() {
     const prevIdx = userRoute[userRoute.length - 1]
     fetchSegGeom(landmarks[prevIdx].id, landmarks[idx].id)
 
-    setUserRoute(prev => [...prev, idx])
+    setUserRoute(prev => {
+      const next = [...prev, idx]
+      persistGame({ nodeCount, landmarks, distMatrix, optimal, userRoute: next, routeGeomMap })
+      return next
+    })
   }
 
   async function finishGame(finalRoute) {
@@ -421,11 +454,32 @@ export default function TSPRealGame() {
       await Promise.all(fetchPromises).catch(() => {/* ignore errors */})
     }
 
+    clearSavedGame()
+    setSavedGame(null)
     setPhase('result')
   }
 
   function handleUndo() {
     setUserRoute(prev => prev.slice(0, -1))
+  }
+
+  function continueGame() {
+    const sg = savedGame
+    if (!sg) return
+    setLandmarks(sg.landmarks)
+    setDistMatrix(sg.distMatrix)
+    setOptimal(sg.optimal)
+    setNodeCount(sg.nodeCount)
+    setUserRoute(sg.userRoute)
+    setRouteGeomMap(sg.routeGeomMap || {})
+    setPhase('playing')
+    setTimeout(() => {
+      if (olMapRef.current) {
+        const coords = sg.landmarks.map(lm => fromLonLat([lm.lon, lm.lat]))
+        const extent = boundingExtent(coords)
+        olMapRef.current.getView().fit(extent, { padding: [80, 40, 120, 40], maxZoom: 15, duration: 600 })
+      }
+    }, 100)
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -516,6 +570,14 @@ export default function TSPRealGame() {
                 {allLandmarks.length > 0 ? `${allLandmarks.length} Ljubljana landmarks loaded` : 'Loading landmarks…'}
               </p>
 
+              {savedGame && (
+                <button onClick={continueGame}
+                  className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                  ▶ Continue saved game
+                  <span className="text-xs font-normal opacity-80">({savedGame.landmarks?.length} stops, {savedGame.userRoute?.length - 1} visited)</span>
+                </button>
+              )}
+
               <button onClick={() => startGame(nodeCount, previewLandmarks)}
                 disabled={allLandmarks.length === 0}
                 className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40">
@@ -593,10 +655,18 @@ export default function TSPRealGame() {
           return (
             <div className="absolute bottom-0 left-0 right-0 pointer-events-none pb-6 px-4 flex justify-center">
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 pointer-events-auto">
+                {/* Drag handle / collapse toggle */}
+                <button onClick={() => setResultCollapsed(c => !c)}
+                  className="w-full flex justify-center items-center gap-1 text-xs text-ink/40 hover:text-ink/60 mb-2">
+                  <span className="w-8 h-1 rounded-full bg-ink/20 block" />
+                </button>
+
                 <div className="text-center">
                   <div className={`text-xl font-bold ${verdictColor}`}>{verdict}</div>
                   <div className="text-xs text-ink/50 mt-0.5">Score: {efficiency}% efficiency</div>
                 </div>
+
+                {!resultCollapsed && <>
                 <div className="grid grid-cols-2 gap-3 text-center text-sm">
                   <div className="bg-red-50 border border-red-100 rounded-xl p-3">
                     <div className="text-xs text-red-400 font-semibold uppercase tracking-wide mb-1">Your route</div>
@@ -625,6 +695,7 @@ export default function TSPRealGame() {
                   <div><span className="text-red-400 font-semibold">Your:</span> {userRoute.slice(0,-1).map(i => landmarks[i]?.name).join(' → ')} → {landmarks[userRoute[0]]?.name}</div>
                   <div><span className="text-green-600 font-semibold">Optimal:</span> {optimal.route.slice(0,-1).map(i => landmarks[i]?.name).join(' → ')} → {landmarks[optimal.route[0]]?.name}</div>
                 </div>
+                </>}
 
                 <div className="flex gap-3">
                   <button onClick={() => startGame(nodeCount)}
@@ -666,6 +737,14 @@ export default function TSPRealGame() {
               ))}
             </div>
             <p className="text-xs text-ink/40 text-center">Real road distances · Ljubljana, Slovenia</p>
+            <button onClick={() => {
+              const fresh = { played: 0, optimal: 0, best: 0, total: 0 }
+              saveStats(fresh)
+              setStats(fresh)
+            }}
+              className="text-xs text-ink/30 hover:text-red-400 transition-colors text-center mt-1">
+              Reset stats
+            </button>
           </div>
         </div>
       )}
