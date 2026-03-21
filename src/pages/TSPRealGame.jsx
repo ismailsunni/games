@@ -77,7 +77,7 @@ const LJ_CENTER  = fromLonLat([14.5058, 46.0511])
 const LJ_EXTENT  = transformExtent([14.41, 45.98, 14.62, 46.12], 'EPSG:4326', 'EPSG:3857')
 
 // ── Map component ─────────────────────────────────────────────────────────────
-function GameMap({ landmarks, userRoute, onLandmarkClick, phase }) {
+function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase }) {
   const mapRef       = useRef(null)
   const olMapRef     = useRef(null)
   const routeSrc     = useRef(new VectorSource())
@@ -170,7 +170,7 @@ function GameMap({ landmarks, userRoute, onLandmarkClick, phase }) {
       markerSrc.current.addFeature(f)
     })
 
-    // Draw route segments
+    // Draw user route — red
     for (let i = 0; i < userRoute.length - 1; i++) {
       const a = landmarks[userRoute[i]]
       const b = landmarks[userRoute[i + 1]]
@@ -178,11 +178,26 @@ function GameMap({ landmarks, userRoute, onLandmarkClick, phase }) {
         geometry: new LineString([fromLonLat([a.lon, a.lat]), fromLonLat([b.lon, b.lat])])
       })
       line.setStyle(new Style({
-        stroke: new Stroke({ color: '#e63946', width: 3.5, lineCap: 'round' })
+        stroke: new Stroke({ color: '#e63946', width: 4, lineCap: 'round' })
       }))
       routeSrc.current.addFeature(line)
     }
-  }, [landmarks, userRoute, phase])
+
+    // Draw optimal route — green dashed (result only)
+    if (phase === 'result' && optRoute?.length) {
+      for (let i = 0; i < optRoute.length - 1; i++) {
+        const a = landmarks[optRoute[i]]
+        const b = landmarks[optRoute[i + 1]]
+        const line = new Feature({
+          geometry: new LineString([fromLonLat([a.lon, a.lat]), fromLonLat([b.lon, b.lat])])
+        })
+        line.setStyle(new Style({
+          stroke: new Stroke({ color: '#22c55e', width: 4, lineCap: 'round', lineDash: [8, 4] })
+        }))
+        routeSrc.current.addFeature(line)
+      }
+    }
+  }, [landmarks, userRoute, optRoute, phase])
 
   return <div ref={mapRef} className="w-full h-full" />
 }
@@ -312,6 +327,7 @@ export default function TSPRealGame() {
         <GameMap
           landmarks={landmarks}
           userRoute={userRoute}
+          optRoute={optimal?.route}
           onLandmarkClick={handleLandmarkClick}
           phase={phase}
         />
