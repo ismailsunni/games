@@ -10,6 +10,7 @@ import ColorGuesser from './pages/ColorGuesser'
 import RGBGuesser from './pages/RGBGuesser'
 import ColorNameQuiz from './pages/ColorNameQuiz'
 import TSPGame from './pages/TSPGame'
+import TSPRealGame from './pages/TSPRealGame'
 
 function UpdateToast() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
@@ -35,6 +36,7 @@ export default function App() {
   else if (route === '/colorguesser/rgb') page = <RGBGuesser />
   else if (route === '/colorguesser/namequiz') page = <ColorNameQuiz />
   else if (route === '/tspgame') page = <TSPGame />
+  else if (route === '/tspreal') page = <TSPRealGame />
   else page = <GameList />
 
   return (
