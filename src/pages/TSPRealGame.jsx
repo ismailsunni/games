@@ -97,7 +97,7 @@ function GameMap({ landmarks, userRoute, onLandmarkClick, phase }) {
         new VectorLayer({ source: routeSrc.current, zIndex: 1 }),
         new VectorLayer({ source: markerSrc.current, zIndex: 2 }),
       ],
-      view: new ol.View({
+      view: new View({
         center: LJ_CENTER,
         zoom: 13,
         minZoom: 11,
