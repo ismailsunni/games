@@ -81,6 +81,37 @@ function shuffle(arr) {
 const LJ_CENTER  = fromLonLat([14.5058, 46.0511])
 const LJ_EXTENT  = transformExtent([14.41, 45.98, 14.62, 46.12], 'EPSG:4326', 'EPSG:3857')
 
+const CITY_CONFIG = {
+  ljubljana: {
+    label: 'Ljubljana',
+    flag: '🇸🇮',
+    center: [14.5058, 46.0511],
+    bounds: [14.41, 45.98, 14.62, 46.12],
+    rpcs: {
+      getLandmarks: 'get_landmarks',
+      getTspDistances: 'get_tsp_distances',
+      getRouteGeojson: 'get_route_geojson',
+      getRandomPoints: 'get_random_road_points',
+      getRandomDistances: 'get_random_point_distances',
+      getVertexRoute: 'get_vertex_route_geojson',
+    }
+  },
+  munich: {
+    label: 'München',
+    flag: '🇩🇪',
+    center: [11.576, 48.137],
+    bounds: [11.41, 48.06, 11.72, 48.22],
+    rpcs: {
+      getLandmarks: 'get_munich_landmarks',
+      getTspDistances: 'get_munich_tsp_distances',
+      getRouteGeojson: 'get_munich_route_geojson',
+      getRandomPoints: 'get_munich_random_points',
+      getRandomDistances: 'get_munich_random_distances',
+      getVertexRoute: 'get_munich_vertex_route',
+    }
+  }
+}
+
 // Singleton GeoJSON format instance for parsing
 const geojsonFormat = new GeoJSON()
 
@@ -312,6 +343,7 @@ export default function TSPRealGame() {
   const [distMatrix, setDistMatrix]               = useState([])
   const [nodeCount, setNodeCount]                 = useState(5)
   const [mode, setMode]                           = useState('landmarks') // 'landmarks' | 'random'
+  const [city, setCity]                           = useState('ljubljana') // 'ljubljana' | 'munich'
   const [phase, setPhase]                         = useState('home') // home | config | loading | playing | result
   const [userRoute, setUserRoute]                 = useState([])
   const [optimal, setOptimal]                     = useState(null)
@@ -334,14 +366,27 @@ export default function TSPRealGame() {
   const modeRef = useRef(mode)
   useEffect(() => { modeRef.current = mode }, [mode])
 
-  // Load all landmarks once (landmarks mode only)
+  // Keep city in a ref so fetchSegGeom (useCallback) always sees the latest value
+  const cityRef = useRef(city)
+  useEffect(() => { cityRef.current = city }, [city])
+
+  // Load all landmarks when city changes
   useEffect(() => {
-    supabase.rpc('get_landmarks').then(({ data, error }) => {
+    supabase.rpc(CITY_CONFIG[city].rpcs.getLandmarks).then(({ data, error }) => {
       if (error) { setLoadError('Failed to load landmarks: ' + error.message); return }
       setAllLandmarks(data)
       setPreviewLandmarks(shuffle(data).slice(0, 5))
     })
-  }, [])
+  }, [city])
+
+  // When city changes, reset map view
+  useEffect(() => {
+    if (olMapRef.current) {
+      const cfg = CITY_CONFIG[city]
+      const extent = transformExtent(cfg.bounds, 'EPSG:4326', 'EPSG:3857')
+      olMapRef.current.getView().fit(extent, { duration: 500 })
+    }
+  }, [city])
 
   // Re-roll preview when nodeCount or mode changes
   useEffect(() => {
@@ -354,7 +399,7 @@ export default function TSPRealGame() {
       let cancelled = false
       setPreviewLoading(true)
       setPreviewLandmarks([])
-      supabase.rpc('get_random_road_points', { n: nodeCount }).then(({ data, error }) => {
+      supabase.rpc(CITY_CONFIG[city].rpcs.getRandomPoints, { n: nodeCount }).then(({ data, error }) => {
         if (cancelled) return
         setPreviewLoading(false)
         if (error || !data) return
@@ -368,7 +413,7 @@ export default function TSPRealGame() {
       })
       return () => { cancelled = true }
     }
-  }, [nodeCount, mode, allLandmarks])
+  }, [nodeCount, mode, city, allLandmarks])
 
   // When switching mode, clamp nodeCount to new max
   const handleModeChange = useCallback((newMode) => {
@@ -390,7 +435,7 @@ export default function TSPRealGame() {
     } else {
       setPreviewLoading(true)
       setPreviewLandmarks([])
-      const { data, error } = await supabase.rpc('get_random_road_points', { n: nodeCount })
+      const { data, error } = await supabase.rpc(CITY_CONFIG[city].rpcs.getRandomPoints, { n: nodeCount })
       setPreviewLoading(false)
       if (error || !data) return
       const normalized = data.map((pt, i) => ({
@@ -401,7 +446,7 @@ export default function TSPRealGame() {
       }))
       setPreviewLandmarks(normalized)
     }
-  }, [allLandmarks, nodeCount, mode])
+  }, [allLandmarks, nodeCount, mode, city])
 
   // Fetch segment geometry (real street route) — non-blocking, updates state when ready
   const fetchSegGeom = useCallback(async (fromId, toId) => {
@@ -412,13 +457,14 @@ export default function TSPRealGame() {
     }
 
     let data, error
+    const cityRpcs = CITY_CONFIG[cityRef.current].rpcs
     if (modeRef.current === 'landmarks') {
-      ({ data, error } = await supabase.rpc('get_route_geojson', {
+      ({ data, error } = await supabase.rpc(cityRpcs.getRouteGeojson, {
         from_landmark_id: fromId,
         to_landmark_id: toId,
       }))
     } else {
-      ({ data, error } = await supabase.rpc('get_vertex_route_geojson', {
+      ({ data, error } = await supabase.rpc(cityRpcs.getVertexRoute, {
         from_vertex_id: fromId,
         to_vertex_id: toId,
       }))
@@ -446,7 +492,7 @@ export default function TSPRealGame() {
       picked = previewLandmarks.length === count ? previewLandmarks : shuffle(allLandmarks).slice(0, count)
     } else {
       // random mode — fetch fresh points
-      const { data, error } = await supabase.rpc('get_random_road_points', { n: count })
+      const { data, error } = await supabase.rpc(CITY_CONFIG[city].rpcs.getRandomPoints, { n: count })
       if (error || !data) { setLoadError('Failed to fetch random points: ' + (error?.message || '')); setPhase('config'); return }
       picked = data.map((pt, i) => ({
         id: pt.pt_id,
@@ -462,7 +508,7 @@ export default function TSPRealGame() {
 
     if (mode === 'landmarks') {
       const ids = picked.map(l => l.id)
-      const { data, error } = await supabase.rpc('get_tsp_distances', { landmark_ids: ids })
+      const { data, error } = await supabase.rpc(CITY_CONFIG[city].rpcs.getTspDistances, { landmark_ids: ids })
       if (error) { setLoadError('Routing error: ' + error.message); setPhase('config'); return }
       data.forEach(row => {
         const fi = picked.findIndex(l => l.id === row.from_landmark)
@@ -471,7 +517,7 @@ export default function TSPRealGame() {
       })
     } else {
       const ids = picked.map(l => Number(l.id)) // BigInt can't be JSON-serialized; Postgres handles number→bigint
-      const { data, error } = await supabase.rpc('get_random_point_distances', { vertex_ids: ids })
+      const { data, error } = await supabase.rpc(CITY_CONFIG[city].rpcs.getRandomDistances, { vertex_ids: ids })
       if (error) { setLoadError('Routing error: ' + error.message); setPhase('config'); return }
       data.forEach(row => {
         const fi = picked.findIndex(l => l.id === row.from_vertex)
@@ -500,7 +546,7 @@ export default function TSPRealGame() {
       setLoadError('Unexpected error: ' + err.message)
       setPhase('config')
     }
-  }, [allLandmarks, nodeCount, previewLandmarks, mode])
+  }, [allLandmarks, nodeCount, previewLandmarks, mode, city])
 
   function handleLandmarkClick(idx) {
     if (phase !== 'playing') return
@@ -533,7 +579,7 @@ export default function TSPRealGame() {
 
     setUserRoute(prev => {
       const next = [...prev, idx]
-      persistGame({ nodeCount, landmarks, distMatrix, optimal, userRoute: next, routeGeomMap })
+      persistGame({ nodeCount, city, landmarks, distMatrix, optimal, userRoute: next, routeGeomMap })
       return next
     })
   }
@@ -594,6 +640,7 @@ export default function TSPRealGame() {
     setDistMatrix(sg.distMatrix)
     setOptimal(sg.optimal)
     setNodeCount(sg.nodeCount)
+    if (sg.city) setCity(sg.city)
     setUserRoute(sg.userRoute)
     setRouteGeomMap(sg.routeGeomMap || {})
     setPhase('playing')
@@ -618,7 +665,7 @@ export default function TSPRealGame() {
       {/* Header */}
       <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-2 shrink-0 z-10">
         <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Gallery</a>
-        <h1 className="font-display text-lg font-bold text-ink flex-1">🗺️ TSP Ljubljana</h1>
+        <h1 className="font-display text-lg font-bold text-ink flex-1">🗺️ TSP {CITY_CONFIG[city].label}</h1>
         {phase !== 'home' && (
           <button onClick={() => setShowStats(true)}
             className="text-sm text-ink/50 hover:text-accent font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
@@ -651,8 +698,8 @@ export default function TSPRealGame() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-6">
               <div className="text-center">
                 <div className="text-5xl mb-2">🗺️</div>
-                <h1 className="text-2xl font-bold text-ink">TSP Ljubljana</h1>
-                <p className="text-sm text-ink/50 mt-1">Find the shortest route through the city</p>
+                <h1 className="text-2xl font-bold text-ink">TSP Challenge</h1>
+                <p className="text-sm text-ink/50 mt-1">🇸🇮 Ljubljana · 🇩🇪 München</p>
               </div>
               <div className="flex flex-col gap-3 w-full max-w-xs">
                 <button onClick={() => setPhase('config')} className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90">
@@ -689,6 +736,20 @@ export default function TSPRealGame() {
               </div>
 
               {loadError && <p className="text-xs text-red-500 text-center">{loadError}</p>}
+
+              {/* City selector */}
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-semibold text-ink/40 uppercase tracking-wider">City</div>
+                <div className="flex gap-2">
+                  {[['ljubljana', '🇸🇮 Ljubljana'], ['munich', '🇩🇪 München']].map(([val, label]) => (
+                    <button key={val} onClick={() => setCity(val)}
+                      className={['flex-1 py-2 text-sm font-medium rounded-lg border transition-colors',
+                        city === val ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Mode selector */}
               <div className="flex gap-2">
@@ -737,8 +798,8 @@ export default function TSPRealGame() {
 
               <p className="text-xs text-ink/40 text-center">
                 {mode === 'landmarks'
-                  ? (allLandmarks.length > 0 ? `${allLandmarks.length} Ljubljana landmarks loaded` : 'Loading landmarks…')
-                  : 'Random road points · Ljubljana'}
+                  ? (allLandmarks.length > 0 ? `${allLandmarks.length} ${CITY_CONFIG[city].label} landmarks loaded` : 'Loading landmarks…')
+                  : `Random road points · ${CITY_CONFIG[city].label}`}
               </p>
 
               <button onClick={() => startGame(nodeCount)}
@@ -919,7 +980,7 @@ export default function TSPRealGame() {
                 )
               })}
             </div>
-            <p className="text-xs text-ink/40 text-center">Real road distances · Ljubljana, Slovenia</p>
+            <p className="text-xs text-ink/40 text-center">Real road distances · {CITY_CONFIG[city].label}</p>
             <button onClick={() => {
               const fresh = { played: 0, optimal: 0, best: 0, total: 0, byCount: JSON.parse(JSON.stringify(DEFAULT_BY_COUNT)) }
               saveStats(fresh)
