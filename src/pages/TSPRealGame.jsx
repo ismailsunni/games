@@ -143,9 +143,8 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
       view: new View({
         center: LJ_CENTER,
         zoom: 13,
-        minZoom: 11,
+        minZoom: 10,
         maxZoom: 18,
-        extent: LJ_EXTENT,
       }),
     })
 
