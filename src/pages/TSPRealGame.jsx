@@ -119,7 +119,12 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
     })
 
     map.on('click', (e) => {
-      const feature = map.forEachFeatureAtPixel(e.pixel, f => f)
+      // Skip ring features (no lmId) — find first actual landmark marker
+      const feature = map.forEachFeatureAtPixel(
+        e.pixel,
+        f => f.get('lmId') !== undefined ? f : null,
+        { hitTolerance: 8 }
+      )
       if (feature?.get('lmId') !== undefined) {
         onClickRef.current(feature.get('lmIdx'))
       }
