@@ -625,16 +625,16 @@ export default function GinRummy() {
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
       {/* Header */}
-      <header className="border-b border-ink/10 bg-canvas px-4 py-4 shrink-0">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium">← Gallery</a>
-            <h1 className="font-display text-xl font-bold text-ink">Gin Rummy{screen === 'playing' && <span className="text-ink/40 font-normal text-base"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}</h1>
-          </div>
-          <div className="text-sm font-medium text-ink/70">
-            You <span className="text-accent font-bold">{scores.player}</span>
-            {' '}·{' '}
-            <span className="font-bold">{scores.computer}</span> Computer
+      <header className="border-b border-ink/10 bg-canvas px-4 py-3 shrink-0">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Gallery</a>
+          <h1 className="font-display text-base font-bold text-ink flex-1 text-center">
+            🃏 Gin Rummy{screen === 'playing' && <span className="text-ink/40 font-normal text-sm"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}
+          </h1>
+          <div className="text-sm font-medium text-ink/70 shrink-0">
+            <span className="text-accent font-bold">{scores.player}</span>
+            {' · '}
+            <span className="font-bold">{scores.computer}</span>
           </div>
         </div>
       </header>
