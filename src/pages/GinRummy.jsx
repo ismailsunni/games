@@ -638,6 +638,7 @@ export default function GinRummy() {
           <h1 className="font-display text-base font-bold text-ink flex-1 text-center">
             🃏 Gin Rummy{screen === 'playing' && <span className="text-ink/40 font-normal text-sm"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}
           </h1>
+          <button onClick={() => { clearSave(); setScreen('home') }} className="text-ink/40 hover:text-accent text-sm shrink-0" title="Menu">≡ Menu</button>
           <div className="text-sm font-medium text-ink/70 shrink-0">
             <span className="text-accent font-bold">{scores.player}</span>
             {' · '}
