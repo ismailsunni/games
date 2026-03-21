@@ -356,7 +356,7 @@ export default function TSPRealGame() {
         if (error || !data) return
         const normalized = data.map((pt, i) => ({
           id: pt.pt_id,
-          name: `Point ${i + 1}`,
+          name: String.fromCharCode(65 + i),
           lat: pt.lat,
           lon: pt.lon,
         }))
@@ -391,7 +391,7 @@ export default function TSPRealGame() {
       if (error || !data) return
       const normalized = data.map((pt, i) => ({
         id: pt.pt_id,
-        name: `Point ${i + 1}`,
+        name: String.fromCharCode(65 + i),
         lat: pt.lat,
         lon: pt.lon,
       }))
@@ -446,7 +446,7 @@ export default function TSPRealGame() {
       if (error || !data) { setLoadError('Failed to fetch random points: ' + (error?.message || '')); setPhase('lobby'); return }
       picked = data.map((pt, i) => ({
         id: pt.pt_id,
-        name: `Point ${i + 1}`,
+        name: String.fromCharCode(65 + i),
         lat: pt.lat,
         lon: pt.lon,
       }))
