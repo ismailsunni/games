@@ -628,7 +628,7 @@ export default function GinRummy() {
       <header className="border-b border-ink/10 bg-canvas px-4 py-4 shrink-0">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium">← Back</a>
+            <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium">← Gallery</a>
             <h1 className="font-display text-xl font-bold text-ink">Gin Rummy{screen === 'playing' && <span className="text-ink/40 font-normal text-base"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}</h1>
           </div>
           <div className="text-sm font-medium text-ink/70">

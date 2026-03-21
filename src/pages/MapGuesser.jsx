@@ -177,7 +177,9 @@ export default function MapGuesser() {
   const [zoom] = useState(15)
   const [filter, setFilter] = useState('all')
   const MIN_ZOOM = getMinZoom(filter)
-  const [phase, setPhase] = useState('lobby') // lobby | question | guessing | result | gameover | explorer
+  const [phase, setPhase] = useState('home') // home | lobby | question | guessing | result | gameover | explorer
+  const [showHelp, setShowHelp] = useState(false)
+  const [showStatsModal, setShowStatsModal] = useState(false)
   const [explorerFilter, setExplorerFilter] = useState('all')
   const [popup, setPopup] = useState(null) // {name, country}
   const explorerPopupRef = useRef(null)   // DOM element for OL Overlay
@@ -794,6 +796,100 @@ export default function MapGuesser() {
   const isGameover = phase === 'gameover'
   const isLobby = phase === 'lobby'
   const isExplorer = phase === 'explorer'
+  const isHome = phase === 'home'
+
+  // ── Home screen ───────────────────────────────────────────────────────────
+  if (isHome) {
+    return (
+      <div className="min-h-screen bg-paper font-body flex flex-col">
+        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
+          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Gallery</a>
+          <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🌍 Map Guesser</h1>
+          <div className="w-20" />
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
+          <div className="text-center">
+            <div className="text-6xl mb-3">🌍</div>
+            <h2 className="text-2xl font-bold text-ink">Map Guesser</h2>
+            <p className="text-sm text-ink/50 mt-1">Guess where cities are on the map</p>
+          </div>
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <button onClick={() => setPhase('lobby')}
+              className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90">
+              ▶ New Game
+            </button>
+            {savedState && (
+              <button onClick={() => { mapsInitialized.current = false; const round = savedState.phase === 'result' ? savedState.currentRound + 1 : savedState.currentRound; if (round >= TOTAL_ROUNDS) { setFilter(savedState.filter); setRoundCities(savedState.roundCities); setResults(savedState.results); setCurrentRound(TOTAL_ROUNDS - 1); setPhase('gameover'); } else { setFilter(savedState.filter); setRoundCities(savedState.roundCities); setResults(savedState.results); setCurrentRound(round); setPhase('question'); } }}
+                className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:opacity-90">
+                ▶ Continue
+                <span className="text-xs font-normal opacity-80 ml-2">(Round {savedState.currentRound + 1})</span>
+              </button>
+            )}
+            <button onClick={() => setShowStatsModal(true)}
+              className="w-full border border-ink/20 text-ink/70 font-medium py-3 rounded-xl hover:border-accent hover:text-accent">
+              📊 Stats
+            </button>
+            <button onClick={() => setShowHelp(true)}
+              className="w-full border border-ink/20 text-ink/70 font-medium py-3 rounded-xl hover:border-accent hover:text-accent">
+              ❓ How to Play
+            </button>
+          </div>
+        </div>
+
+        {/* Stats modal */}
+        {showStatsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4"
+            onClick={() => setShowStatsModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-xl font-bold text-ink">Stats</h2>
+                <button onClick={() => setShowStatsModal(false)} className="text-ink/40 hover:text-ink text-xl">✕</button>
+              </div>
+              {Object.entries(FILTER_LABELS).map(([key, label]) => {
+                const s = stats[key]
+                return (
+                  <div key={key} className="bg-paper rounded-xl p-3">
+                    <div className="text-sm font-semibold text-ink mb-1">{label}</div>
+                    <div className="text-xs text-ink/60">
+                      {s.gamesPlayed} games · best {s.bestScore.toLocaleString()} pts
+                      {s.gamesPlayed > 0 && ` · avg ${Math.round(s.totalScore / s.gamesPlayed).toLocaleString()} pts`}
+                    </div>
+                  </div>
+                )
+              })}
+              <button onClick={() => setShowStatsModal(false)}
+                className="w-full bg-accent text-white font-bold py-2.5 rounded-xl hover:opacity-90 mt-2">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Help modal */}
+        {showHelp && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4"
+            onClick={() => setShowHelp(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 flex flex-col gap-4"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-xl font-bold text-ink">How to Play</h2>
+                <button onClick={() => setShowHelp(false)} className="text-ink/40 hover:text-ink text-xl">✕</button>
+              </div>
+              <p className="text-sm text-ink/70 leading-relaxed">
+                Each round you see a city name. Click on the map where you think that city is.
+                Score is based on distance accuracy. {ROUND_TIME} seconds per round, {TOTAL_ROUNDS} rounds total.
+              </p>
+              <button onClick={() => setShowHelp(false)}
+                className="w-full bg-accent text-white font-bold py-2.5 rounded-xl hover:opacity-90 mt-2">
+                Got it!
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // ── Lobby screen ──────────────────────────────────────────────────────────
   if (isLobby) {
@@ -808,7 +904,7 @@ export default function MapGuesser() {
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
         <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Back</a>
+          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Gallery</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🗺️ Map Guesser</h1>
           <div className="w-12" />
         </header>
@@ -945,7 +1041,7 @@ export default function MapGuesser() {
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
         <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Back</a>
+          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Gallery</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🗺️ Map Guesser</h1>
           <div className="text-sm text-ink/60 w-20 text-right">Final</div>
         </header>
@@ -1028,7 +1124,7 @@ export default function MapGuesser() {
               href="#/"
               className="flex-1 text-center border border-ink/20 text-ink font-medium py-3 px-6 rounded-lg hover:border-accent hover:text-accent transition-colors"
             >
-              ← Back to games
+              ← Gallery
             </a>
           </div>
         </div>
@@ -1041,7 +1137,7 @@ export default function MapGuesser() {
     <div className="fixed inset-0 flex flex-col bg-paper font-body overflow-hidden">
       {/* Header */}
       <header className="flex-none border-b border-ink/10 bg-canvas px-4 py-2 flex items-center gap-3 z-10">
-        <a href="#/" className="text-accent hover:underline text-sm font-medium whitespace-nowrap">← Back</a>
+        <a href="#/" className="text-accent hover:underline text-sm font-medium whitespace-nowrap">← Gallery</a>
         <h1 className="font-display text-lg font-bold text-ink flex-1 text-center">🗺️ Map Guesser</h1>
         <div className="text-sm text-ink/60 whitespace-nowrap w-28 text-right">
           Round {currentRound + 1}/5 · {totalScore.toLocaleString()} pts

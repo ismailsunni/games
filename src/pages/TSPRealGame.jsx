@@ -309,13 +309,14 @@ export default function TSPRealGame() {
   const [distMatrix, setDistMatrix]               = useState([])
   const [nodeCount, setNodeCount]                 = useState(5)
   const [mode, setMode]                           = useState('landmarks') // 'landmarks' | 'random'
-  const [phase, setPhase]                         = useState('lobby') // lobby | loading | playing | result
+  const [phase, setPhase]                         = useState('home') // home | config | loading | playing | result
   const [userRoute, setUserRoute]                 = useState([])
   const [optimal, setOptimal]                     = useState(null)
   const [stats, setStats]                         = useState(() => loadStats())
   const [unlockMessage, setUnlockMessage]         = useState('')
   const [loadError, setLoadError]                 = useState('')
   const [showStats, setShowStats]                 = useState(false)
+  const [showHelp, setShowHelp]                   = useState(false)
   const [routeGeomMap, setRouteGeomMap]           = useState({})
   const [resultCollapsed, setResultCollapsed]     = useState(false)
   const [savedGame, setSavedGame]                 = useState(() => loadSavedGame())
@@ -443,7 +444,7 @@ export default function TSPRealGame() {
     } else {
       // random mode — fetch fresh points
       const { data, error } = await supabase.rpc('get_random_road_points', { n: count })
-      if (error || !data) { setLoadError('Failed to fetch random points: ' + (error?.message || '')); setPhase('lobby'); return }
+      if (error || !data) { setLoadError('Failed to fetch random points: ' + (error?.message || '')); setPhase('config'); return }
       picked = data.map((pt, i) => ({
         id: pt.pt_id,
         name: String.fromCharCode(65 + i),
@@ -459,7 +460,7 @@ export default function TSPRealGame() {
     if (mode === 'landmarks') {
       const ids = picked.map(l => l.id)
       const { data, error } = await supabase.rpc('get_tsp_distances', { landmark_ids: ids })
-      if (error) { setLoadError('Routing error: ' + error.message); setPhase('lobby'); return }
+      if (error) { setLoadError('Routing error: ' + error.message); setPhase('config'); return }
       data.forEach(row => {
         const fi = picked.findIndex(l => l.id === row.from_landmark)
         const ti = picked.findIndex(l => l.id === row.to_landmark)
@@ -468,7 +469,7 @@ export default function TSPRealGame() {
     } else {
       const ids = picked.map(l => Number(l.id)) // BigInt can't be JSON-serialized; Postgres handles number→bigint
       const { data, error } = await supabase.rpc('get_random_point_distances', { vertex_ids: ids })
-      if (error) { setLoadError('Routing error: ' + error.message); setPhase('lobby'); return }
+      if (error) { setLoadError('Routing error: ' + error.message); setPhase('config'); return }
       data.forEach(row => {
         const fi = picked.findIndex(l => l.id === row.from_vertex)
         const ti = picked.findIndex(l => l.id === row.to_vertex)
@@ -494,7 +495,7 @@ export default function TSPRealGame() {
     }, 100)
     } catch (err) {
       setLoadError('Unexpected error: ' + err.message)
-      setPhase('lobby')
+      setPhase('config')
     }
   }, [allLandmarks, nodeCount, previewLandmarks, mode])
 
@@ -613,16 +614,18 @@ export default function TSPRealGame() {
     <div className="h-screen flex flex-col bg-paper font-body">
       {/* Header */}
       <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-2 shrink-0 z-10">
-        <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Back</a>
+        <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Gallery</a>
         <h1 className="font-display text-lg font-bold text-ink flex-1">🗺️ TSP Ljubljana</h1>
-        <button onClick={() => setShowStats(true)}
-          className="text-sm text-ink/50 hover:text-accent font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
-          📊 Stats
-        </button>
+        {phase !== 'home' && (
+          <button onClick={() => setShowStats(true)}
+            className="text-sm text-ink/50 hover:text-accent font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
+            📊 Stats
+          </button>
+        )}
         {phase === 'playing' && (
-          <button onClick={() => setPhase('lobby')}
+          <button onClick={() => setPhase('home')}
             className="text-sm text-ink/50 hover:text-red-400 border border-ink/20 px-3 py-1.5 rounded-lg hover:border-red-300 shrink-0">
-            Give up
+            ≡ Menu
           </button>
         )}
       </header>
@@ -639,22 +642,48 @@ export default function TSPRealGame() {
           olMapRef={olMapRef}
         />
 
-        {/* Lobby overlay */}
-        {phase === 'lobby' && (
+        {/* Home overlay */}
+        {phase === 'home' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-6">
+              <div className="text-center">
+                <div className="text-5xl mb-2">🗺️</div>
+                <h1 className="text-2xl font-bold text-ink">TSP Ljubljana</h1>
+                <p className="text-sm text-ink/50 mt-1">Find the shortest route through the city</p>
+              </div>
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <button onClick={() => setPhase('config')} className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90">
+                  ▶ New Game
+                </button>
+                {savedGame && (
+                  <button onClick={continueGame} className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:opacity-90">
+                    ▶ Continue
+                    <span className="text-xs font-normal opacity-80 ml-2">({savedGame.landmarks?.length} stops, {savedGame.userRoute?.length - 1} visited)</span>
+                  </button>
+                )}
+                <button onClick={() => setShowStats(true)} className="w-full border border-ink/20 text-ink/70 font-medium py-3 rounded-xl hover:border-accent hover:text-accent">
+                  📊 Stats
+                </button>
+                <button onClick={() => setShowHelp(true)} className="w-full border border-ink/20 text-ink/70 font-medium py-3 rounded-xl hover:border-accent hover:text-accent">
+                  ❓ How to Play
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Config overlay */}
+        {phase === 'config' && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5">
-              <div className="text-center">
-                <div className="text-4xl mb-1">🏙️</div>
-                <h2 className="font-display text-xl font-bold text-ink">TSP Ljubljana</h2>
-                <p className="text-xs text-ink/50 mt-1">Find the shortest route through real Ljubljana streets</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPhase('home')} className="text-ink/50 hover:text-accent text-sm font-medium">← Back</button>
+                <div className="flex-1 text-center">
+                  <div className="text-3xl mb-1">🏙️</div>
+                  <h2 className="font-display text-xl font-bold text-ink">Configure Game</h2>
+                </div>
+                <div className="w-12" />
               </div>
-
-              <ul className="text-xs text-ink/60 space-y-1 bg-paper rounded-xl px-3 py-2">
-                <li>📍 Tap any landmark to start your route</li>
-                <li>🔁 Visit <strong>all</strong> landmarks exactly once</li>
-                <li>🏁 Return to your starting landmark to finish</li>
-                <li>🎯 Beat the optimal route distance!</li>
-              </ul>
 
               {loadError && <p className="text-xs text-red-500 text-center">{loadError}</p>}
 
@@ -703,21 +732,11 @@ export default function TSPRealGame() {
                 </div>
               </div>
 
-
-
               <p className="text-xs text-ink/40 text-center">
                 {mode === 'landmarks'
                   ? (allLandmarks.length > 0 ? `${allLandmarks.length} Ljubljana landmarks loaded` : 'Loading landmarks…')
                   : 'Random road points · Ljubljana'}
               </p>
-
-              {savedGame && (
-                <button onClick={continueGame}
-                  className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-                  ▶ Continue saved game
-                  <span className="text-xs font-normal opacity-80">({savedGame.landmarks?.length} stops, {savedGame.userRoute?.length - 1} visited)</span>
-                </button>
-              )}
 
               <button onClick={() => startGame(nodeCount)}
                 disabled={mode === 'landmarks' && allLandmarks.length === 0}
@@ -846,9 +865,9 @@ export default function TSPRealGame() {
                     className="flex-1 bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90">
                     Play again
                   </button>
-                  <button onClick={() => setPhase('lobby')}
+                  <button onClick={() => setPhase('home')}
                     className="flex-1 border border-ink/20 text-ink font-medium py-3 rounded-xl hover:border-accent hover:text-accent">
-                    Change map
+                    🏠 Home
                   </button>
                 </div>
               </div>
@@ -905,6 +924,32 @@ export default function TSPRealGame() {
             }}
               className="text-xs text-ink/30 hover:text-red-400 transition-colors text-center mt-1">
               Reset stats
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Help modal */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4"
+          onClick={() => setShowHelp(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 flex flex-col gap-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-xl font-bold text-ink">How to Play</h2>
+              <button onClick={() => setShowHelp(false)} className="text-ink/40 hover:text-ink text-xl">✕</button>
+            </div>
+            <ul className="text-sm text-ink/70 space-y-2">
+              <li>📍 Tap any landmark to start your route</li>
+              <li>🔁 Visit <strong>all</strong> landmarks exactly once</li>
+              <li>🏁 Return to your starting landmark to finish</li>
+              <li>🎯 Beat the optimal route distance!</li>
+              <li>↩ Tap the current node again to undo the last step</li>
+              <li>🔓 Get 3 wins ≥ 90% efficiency to unlock more nodes</li>
+            </ul>
+            <button onClick={() => setShowHelp(false)}
+              className="w-full bg-accent text-white font-bold py-2.5 rounded-xl hover:opacity-90 mt-2">
+              Got it!
             </button>
           </div>
         </div>

@@ -130,7 +130,7 @@ export default function TicTacTwo() {
     <div className="min-h-screen bg-paper font-body">
       <header className="border-b border-ink/10 bg-canvas px-6 py-6">
         <div className="max-w-xl mx-auto flex items-center gap-4">
-          <a href="#/" className="text-ink/50 hover:text-accent transition-colors text-sm font-medium">← Back</a>
+          <a href="#/" className="text-ink/50 hover:text-accent transition-colors text-sm font-medium">← Gallery</a>
           <h1 className="font-display text-2xl font-bold text-ink">Tic-Tac-Two</h1>
           <span className="text-xs text-ink/40 border border-ink/20 rounded px-2 py-0.5">2×2</span>
         </div>

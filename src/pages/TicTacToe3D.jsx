@@ -617,7 +617,7 @@ export default function TicTacToe3D() {
     <div className="min-h-screen bg-paper font-body">
       <header className="border-b border-ink/10 bg-canvas px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center gap-2">
-          <a href="#/" className="text-ink/50 hover:text-accent transition-colors text-sm font-medium shrink-0">← Back</a>
+          <a href="#/" className="text-ink/50 hover:text-accent transition-colors text-sm font-medium shrink-0">← Gallery</a>
           <h1 className="font-display text-lg font-bold text-ink flex-1 truncate">Tic-Tac-3D</h1>
           <button onClick={() => setShowStats(true)}
             className="text-sm text-ink/50 hover:text-accent transition-colors font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
