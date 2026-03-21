@@ -161,7 +161,7 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
       f.set('lmId', lm.id)
       f.setStyle(new Style({
         image: new CircleStyle({
-          radius: 12,
+          radius: 20,
           fill:   new Fill({ color: fill }),
           stroke: new Stroke({ color: stroke, width: 2.5 }),
         }),
@@ -387,7 +387,7 @@ export default function TSPRealGame() {
           fetchPromises.push(fetchSegGeom(fromLm.id, toLm.id))
         }
       }
-      Promise.all(fetchPromises).catch(() => {/* ignore errors */})
+      await Promise.all(fetchPromises).catch(() => {/* ignore errors */})
     }
 
     setPhase('result')
@@ -491,7 +491,7 @@ export default function TSPRealGame() {
               {userRoute.length > 0 && !allVisited && (
                 <span><strong className="text-ink">{n - userRoute.length}</strong> more to visit</span>
               )}
-              {canClose && <span className="text-green-600 font-medium">Tap start to finish ✓</span>}
+              {canClose && <span className="text-green-600 font-medium">Tap <strong>{landmarks[userRoute[0]]?.name}</strong> to finish ✓</span>}
             </div>
             <div className="flex items-center gap-2 pointer-events-auto">
               {currentCost > 0 && (
