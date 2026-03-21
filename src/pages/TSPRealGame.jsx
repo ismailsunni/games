@@ -487,10 +487,10 @@ export default function TSPRealGame() {
     try {
 
     let picked
-    if (pickedOverride) {
+    if (pickedOverride && pickedOverride.length > 0) {
       picked = pickedOverride
     } else if (mode === 'landmarks') {
-      picked = (pickedOverride === null && previewLandmarks.length === count) ? previewLandmarks : shuffle(allLandmarks).slice(0, count)
+      picked = shuffle(allLandmarks).slice(0, count)
     } else {
       // random mode — fetch fresh points
       const { data, error } = await supabase.rpc(CITY_CONFIG[city].rpcs.getRandomPoints, { n: count })
@@ -804,7 +804,7 @@ export default function TSPRealGame() {
                   : `Random road points · ${CITY_CONFIG[city].label}`}
               </p>
 
-              <button onClick={() => startGame(nodeCount)}
+              <button onClick={() => startGame(nodeCount, mode === 'landmarks' ? previewLandmarks : null)}
                 disabled={mode === 'landmarks' && allLandmarks.length === 0}
                 className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40">
                 Play →
@@ -927,7 +927,7 @@ export default function TSPRealGame() {
                 </>}
 
                 <div className="flex gap-3">
-                  <button onClick={() => startGame(nodeCount, undefined)}
+                  <button onClick={() => startGame(nodeCount)}
                     className="flex-1 bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90">
                     Play again
                   </button>
