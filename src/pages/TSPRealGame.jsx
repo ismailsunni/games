@@ -271,11 +271,33 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────
+const DEFAULT_BY_COUNT = {
+  3: { played: 0, qualified: 0 },
+  4: { played: 0, qualified: 0 },
+  5: { played: 0, qualified: 0 },
+  6: { played: 0, qualified: 0 },
+  7: { played: 0, qualified: 0 },
+  8: { played: 0, qualified: 0 },
+  9: { played: 0, qualified: 0 },
+}
 function loadStats() {
-  try { return JSON.parse(localStorage.getItem('tsp_real_stats')) || { played: 0, optimal: 0, best: 0, total: 0 } }
-  catch { return { played: 0, optimal: 0, best: 0, total: 0 } }
+  try {
+    const s = JSON.parse(localStorage.getItem('tsp_real_stats')) || { played: 0, optimal: 0, best: 0, total: 0 }
+    if (!s.byCount) s.byCount = JSON.parse(JSON.stringify(DEFAULT_BY_COUNT))
+    return s
+  } catch { return { played: 0, optimal: 0, best: 0, total: 0, byCount: JSON.parse(JSON.stringify(DEFAULT_BY_COUNT)) } }
 }
 function saveStats(s) { localStorage.setItem('tsp_real_stats', JSON.stringify(s)) }
+
+function getMaxUnlocked(stats) {
+  let max = 6  // 3-6 always unlocked
+  for (let n = 7; n <= 10; n++) {
+    const prev = stats.byCount?.[n - 1] ?? { qualified: 0 }
+    if (prev.qualified >= 3) max = n
+    else break
+  }
+  return max
+}
 
 function loadSavedGame() {
   try { return JSON.parse(localStorage.getItem('tsp_real_state')) || null }
@@ -297,6 +319,7 @@ export default function TSPRealGame() {
   const [userRoute, setUserRoute]                 = useState([])
   const [optimal, setOptimal]                     = useState(null)
   const [stats, setStats]                         = useState(() => loadStats())
+  const [unlockMessage, setUnlockMessage]         = useState('')
   const [loadError, setLoadError]                 = useState('')
   const [showStats, setShowStats]                 = useState(false)
   const [routeGeomMap, setRouteGeomMap]           = useState({})
@@ -415,6 +438,7 @@ export default function TSPRealGame() {
     setUserRoute([])
     setLoadError('')
     setRouteGeomMap({})
+    setUnlockMessage('')
 
     let picked
     if (pickedOverride) {
@@ -517,12 +541,26 @@ export default function TSPRealGame() {
     const isOptimal  = Math.abs(userCost - optimal.cost) < 1
 
     const ns = loadStats()
+    const oldStats = JSON.parse(JSON.stringify(ns))
     ns.played++
     if (isOptimal) ns.optimal++
     if (efficiency > ns.best) ns.best = efficiency
     ns.total += efficiency
+
+    const countKey = finalRoute.length - 1
+    if (!ns.byCount) ns.byCount = {}
+    if (!ns.byCount[countKey]) ns.byCount[countKey] = { played: 0, qualified: 0 }
+    ns.byCount[countKey].played++
+    if (efficiency >= 90) ns.byCount[countKey].qualified++
+
     saveStats(ns)
     setStats(ns)
+
+    const newMax = getMaxUnlocked(ns)
+    const wasMax = getMaxUnlocked(oldStats)
+    if (newMax > wasMax) {
+      setUnlockMessage(`🔓 ${newMax} nodes unlocked!`)
+    }
 
     // Fetch all optimal route segment geoms in parallel
     if (optimal?.route?.length) {
@@ -566,6 +604,7 @@ export default function TSPRealGame() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  const maxUnlocked = getMaxUnlocked(stats)
   const n          = landmarks.length
   const allVisited = userRoute.length === n
   const canClose   = allVisited && userRoute.length > 0
@@ -643,17 +682,25 @@ export default function TSPRealGame() {
                   <div className="flex justify-between text-xs text-ink/40">
                     <span>3</span>
                     <span className="font-bold text-accent text-sm">{nodeCount} {DIFFICULTIES[nodeCount] || 'nodes'}</span>
-                    <span>{MODE_MAX_NODES[mode]}</span>
+                    <span>{Math.min(MODE_MAX_NODES[mode], maxUnlocked)}</span>
                   </div>
                   <input
                     type="range"
                     min={3}
-                    max={MODE_MAX_NODES[mode]}
+                    max={Math.min(MODE_MAX_NODES[mode], maxUnlocked)}
                     step={1}
                     value={nodeCount}
                     onChange={e => setNodeCount(+e.target.value)}
                     className="w-full accent-accent"
                   />
+                  {nodeCount === maxUnlocked && maxUnlocked < Math.min(10, MODE_MAX_NODES[mode]) && (() => {
+                    const qualified = stats.byCount?.[nodeCount]?.qualified ?? 0
+                    return (
+                      <p className="text-[10px] text-ink/40 text-center">
+                        🔒 {qualified}/3 wins ≥ 90% at {nodeCount} nodes to unlock {nodeCount + 1}
+                      </p>
+                    )
+                  })()}
                 </div>
               </div>
 
@@ -774,6 +821,9 @@ export default function TSPRealGame() {
                 <div className="text-center">
                   <div className={`text-xl font-bold ${verdictColor}`}>{verdict}</div>
                   <div className="text-xs text-ink/50 mt-0.5">Score: {efficiency}% efficiency</div>
+                  {unlockMessage && (
+                    <div className="mt-1 text-sm font-bold text-green-600 animate-pulse">{unlockMessage}</div>
+                  )}
                 </div>
 
                 {!resultCollapsed && <>
@@ -846,9 +896,26 @@ export default function TSPRealGame() {
                 </div>
               ))}
             </div>
+            <div className="border-t border-ink/10 pt-3">
+              <div className="text-xs font-semibold text-ink/40 uppercase tracking-wider mb-2">Unlock Progress</div>
+              {[7, 8, 9, 10].map(n => {
+                const qualified = stats.byCount?.[n - 1]?.qualified ?? 0
+                const unlocked = getMaxUnlocked(stats) >= n
+                return (
+                  <div key={n} className="flex justify-between items-center text-xs py-0.5">
+                    <span className={unlocked ? 'text-green-600 font-semibold' : 'text-ink/50'}>
+                      {unlocked ? '🔓' : '🔒'} {n} nodes
+                    </span>
+                    <span className="text-ink/40">
+                      {unlocked ? 'Unlocked' : `${qualified}/3 wins ≥90%`}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
             <p className="text-xs text-ink/40 text-center">Real road distances · Ljubljana, Slovenia</p>
             <button onClick={() => {
-              const fresh = { played: 0, optimal: 0, best: 0, total: 0 }
+              const fresh = { played: 0, optimal: 0, best: 0, total: 0, byCount: JSON.parse(JSON.stringify(DEFAULT_BY_COUNT)) }
               saveStats(fresh)
               setStats(fresh)
             }}
