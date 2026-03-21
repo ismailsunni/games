@@ -930,8 +930,11 @@ export default function GinRummy() {
 
       {/* Home screen */}
       {screen === 'home' && (
-        <div className="fixed inset-0 bg-canvas z-40 flex flex-col items-center justify-center p-8">
-          <a href="#/" className="absolute top-4 left-4 text-ink/50 hover:text-accent text-sm font-medium">← Gallery</a>
+        <div className="fixed inset-0 bg-canvas z-40 flex flex-col">
+          <header className="border-b border-ink/10 px-4 py-3 flex items-center">
+            <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium">← Gallery</a>
+          </header>
+          <div className="flex-1 flex flex-col items-center justify-center p-8">
           <div className="text-5xl mb-4">🃏</div>
           <h2 className="text-3xl font-bold text-ink mb-1">Gin Rummy</h2>
           <p className="text-ink/40 text-sm mb-8">Classic card game vs computer</p>
@@ -980,6 +983,7 @@ export default function GinRummy() {
             <button onClick={() => setShowHelp(true)}
               className="w-10 h-10 rounded-full bg-ink/10 text-ink font-bold hover:bg-ink/20 transition-colors"
               title="How to play">?</button>
+          </div>
           </div>
         </div>
       )}
