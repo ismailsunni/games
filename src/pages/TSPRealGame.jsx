@@ -698,22 +698,7 @@ export default function TSPRealGame() {
                 </div>
               </div>
 
-              {/* Preview pills */}
-              {previewLoading && (
-                <div className="text-xs text-ink/40 text-center animate-pulse">Fetching random points…</div>
-              )}
-              {!previewLoading && previewLandmarks.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {previewLandmarks.map(lm => (
-                    <span key={lm.id} className="text-[10px] bg-ink/5 border border-ink/10 rounded-full px-2 py-0.5 text-ink/60">{lm.name}</span>
-                  ))}
-                </div>
-              )}
 
-              <button onClick={rerollLandmarks}
-                className="text-sm border border-ink/20 text-ink/60 hover:text-accent hover:border-accent py-2 rounded-lg transition-colors w-full">
-                🔄 Re-roll {mode === 'landmarks' ? 'landmarks' : 'points'}
-              </button>
 
               <p className="text-xs text-ink/40 text-center">
                 {mode === 'landmarks'
@@ -729,7 +714,7 @@ export default function TSPRealGame() {
                 </button>
               )}
 
-              <button onClick={() => startGame(nodeCount, mode === 'landmarks' ? previewLandmarks : null)}
+              <button onClick={() => startGame(nodeCount)}
                 disabled={mode === 'landmarks' && allLandmarks.length === 0}
                 className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40">
                 Play →
