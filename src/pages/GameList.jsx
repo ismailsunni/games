@@ -2,7 +2,7 @@ const featuredGames = [
   {
     id: 'tspreal',
     name: 'TSP Cities',
-    description: 'Find the shortest route through real Ljubljana streets. Real road distances via pgRouting.',
+    description: 'Find the shortest route through real city streets. Choose Ljubljana or München. Real road distances via pgRouting.',
     emoji: '🏙️',
     hash: '#/tspreal',
     featured: true,
