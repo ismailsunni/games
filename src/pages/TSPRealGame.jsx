@@ -8,6 +8,7 @@ import XYZ from 'ol/source/XYZ'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import LineString from 'ol/geom/LineString'
+import GeoJSON from 'ol/format/GeoJSON'
 import { fromLonLat, transformExtent } from 'ol/proj'
 import { Circle as CircleStyle, Fill, Stroke, Style, Text } from 'ol/style'
 import { supabase } from '../lib/supabase'
@@ -76,8 +77,11 @@ function shuffle(arr) {
 const LJ_CENTER  = fromLonLat([14.5058, 46.0511])
 const LJ_EXTENT  = transformExtent([14.41, 45.98, 14.62, 46.12], 'EPSG:4326', 'EPSG:3857')
 
+// Singleton GeoJSON format instance for parsing
+const geojsonFormat = new GeoJSON()
+
 // ── Map component ─────────────────────────────────────────────────────────────
-function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase }) {
+function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, routeGeomMap }) {
   const mapRef       = useRef(null)
   const olMapRef     = useRef(null)
   const routeSrc     = useRef(new VectorSource())
@@ -125,7 +129,7 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase }) {
     return () => map.setTarget(null)
   }, []) // eslint-disable-line
 
-  // Update markers when landmarks/route changes
+  // Update markers when landmarks/route/geoms changes
   useEffect(() => {
     if (!landmarks.length) return
     markerSrc.current.clear()
@@ -170,34 +174,79 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase }) {
       markerSrc.current.addFeature(f)
     })
 
-    // Draw user route — red
+    // Draw user route — red (real street geometry when available, dashed straight line as placeholder)
     for (let i = 0; i < userRoute.length - 1; i++) {
-      const a = landmarks[userRoute[i]]
-      const b = landmarks[userRoute[i + 1]]
-      const line = new Feature({
-        geometry: new LineString([fromLonLat([a.lon, a.lat]), fromLonLat([b.lon, b.lat])])
-      })
-      line.setStyle(new Style({
-        stroke: new Stroke({ color: '#e63946', width: 4, lineCap: 'round' })
-      }))
+      const fromLm = landmarks[userRoute[i]]
+      const toLm   = landmarks[userRoute[i + 1]]
+      const segKey = `${fromLm.id}-${toLm.id}`
+      const geojsonStr = routeGeomMap[segKey]
+
+      let line
+      if (geojsonStr) {
+        try {
+          const olGeom = geojsonFormat.readGeometry(geojsonStr, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857',
+          })
+          line = new Feature({ geometry: olGeom })
+          line.setStyle(new Style({
+            stroke: new Stroke({ color: '#e63946', width: 4, lineCap: 'round' })
+          }))
+        } catch (e) {
+          // fall through to straight-line placeholder
+        }
+      }
+
+      if (!line) {
+        // Placeholder: thin dashed straight line
+        line = new Feature({
+          geometry: new LineString([fromLonLat([fromLm.lon, fromLm.lat]), fromLonLat([toLm.lon, toLm.lat])])
+        })
+        line.setStyle(new Style({
+          stroke: new Stroke({ color: '#e63946', width: 2, lineDash: [6, 4] })
+        }))
+      }
+
       routeSrc.current.addFeature(line)
     }
 
     // Draw optimal route — green dashed (result only)
     if (phase === 'result' && optRoute?.length) {
       for (let i = 0; i < optRoute.length - 1; i++) {
-        const a = landmarks[optRoute[i]]
-        const b = landmarks[optRoute[i + 1]]
-        const line = new Feature({
-          geometry: new LineString([fromLonLat([a.lon, a.lat]), fromLonLat([b.lon, b.lat])])
-        })
-        line.setStyle(new Style({
-          stroke: new Stroke({ color: '#22c55e', width: 4, lineCap: 'round', lineDash: [8, 4] })
-        }))
+        const fromLm = landmarks[optRoute[i]]
+        const toLm   = landmarks[optRoute[i + 1]]
+        const segKey = `${fromLm.id}-${toLm.id}`
+        const geojsonStr = routeGeomMap[segKey]
+
+        let line
+        if (geojsonStr) {
+          try {
+            const olGeom = geojsonFormat.readGeometry(geojsonStr, {
+              dataProjection: 'EPSG:4326',
+              featureProjection: 'EPSG:3857',
+            })
+            line = new Feature({ geometry: olGeom })
+            line.setStyle(new Style({
+              stroke: new Stroke({ color: '#22c55e', width: 4, lineCap: 'round', lineDash: [8, 4] })
+            }))
+          } catch (e) {
+            // fall through to straight-line placeholder
+          }
+        }
+
+        if (!line) {
+          line = new Feature({
+            geometry: new LineString([fromLonLat([fromLm.lon, fromLm.lat]), fromLonLat([toLm.lon, toLm.lat])])
+          })
+          line.setStyle(new Style({
+            stroke: new Stroke({ color: '#22c55e', width: 2, lineDash: [8, 4] })
+          }))
+        }
+
         routeSrc.current.addFeature(line)
       }
     }
-  }, [landmarks, userRoute, optRoute, phase])
+  }, [landmarks, userRoute, optRoute, phase, routeGeomMap])
 
   return <div ref={mapRef} className="w-full h-full" />
 }
@@ -221,6 +270,10 @@ export default function TSPRealGame() {
   const [stats, setStats]                 = useState(() => loadStats())
   const [loadError, setLoadError]         = useState('')
   const [showStats, setShowStats]         = useState(false)
+  const [routeGeomMap, setRouteGeomMap]   = useState({})
+
+  // Cache for geom fetches — persists across renders without causing re-renders
+  const geomsCache = useRef({})
 
   // Load all landmarks once
   useEffect(() => {
@@ -230,12 +283,32 @@ export default function TSPRealGame() {
     })
   }, [])
 
+  // Fetch segment geometry (real street route) — non-blocking, updates state when ready
+  const fetchSegGeom = useCallback(async (fromLandmarkId, toLandmarkId) => {
+    const key = `${fromLandmarkId}-${toLandmarkId}`
+    if (geomsCache.current[key]) {
+      // Already cached — ensure state reflects it
+      setRouteGeomMap(prev => prev[key] ? prev : { ...prev, [key]: geomsCache.current[key] })
+      return
+    }
+
+    const { data, error } = await supabase.rpc('get_route_geojson', {
+      from_landmark_id: fromLandmarkId,
+      to_landmark_id: toLandmarkId,
+    })
+    if (error || !data) return
+
+    geomsCache.current[key] = data
+    setRouteGeomMap(prev => ({ ...prev, [key]: data }))
+  }, [])
+
   // Pick random landmarks and fetch distances
   const startGame = useCallback(async (count = nodeCount) => {
     if (allLandmarks.length === 0) return
     setPhase('loading')
     setUserRoute([])
     setLoadError('')
+    setRouteGeomMap({})
 
     const picked = shuffle(allLandmarks).slice(0, count)
     const ids = picked.map(l => l.id)
@@ -276,10 +349,15 @@ export default function TSPRealGame() {
     }
 
     if (userRoute.includes(idx)) return
+
+    // Fire-and-forget: fetch real geometry for the new segment
+    const prevIdx = userRoute[userRoute.length - 1]
+    fetchSegGeom(landmarks[prevIdx].id, landmarks[idx].id)
+
     setUserRoute(prev => [...prev, idx])
   }
 
-  function finishGame(finalRoute) {
+  async function finishGame(finalRoute) {
     const userCost   = routeCost(distMatrix, finalRoute)
     const efficiency = Math.round((optimal.cost / userCost) * 100)
     const isOptimal  = Math.abs(userCost - optimal.cost) < 1
@@ -291,6 +369,20 @@ export default function TSPRealGame() {
     ns.total += efficiency
     saveStats(ns)
     setStats(ns)
+
+    // Fetch all optimal route segment geoms in parallel
+    if (optimal?.route?.length) {
+      const fetchPromises = []
+      for (let i = 0; i < optimal.route.length - 1; i++) {
+        const fromLm = landmarks[optimal.route[i]]
+        const toLm   = landmarks[optimal.route[i + 1]]
+        if (fromLm && toLm) {
+          fetchPromises.push(fetchSegGeom(fromLm.id, toLm.id))
+        }
+      }
+      Promise.all(fetchPromises).catch(() => {/* ignore errors */})
+    }
+
     setPhase('result')
   }
 
@@ -330,6 +422,7 @@ export default function TSPRealGame() {
           optRoute={optimal?.route}
           onLandmarkClick={handleLandmarkClick}
           phase={phase}
+          routeGeomMap={routeGeomMap}
         />
 
         {/* Lobby overlay */}
@@ -410,7 +503,7 @@ export default function TSPRealGame() {
           </div>
         )}
 
-        {/* Result overlay */}
+        {/* Result overlay — no background/blur so map stays interactive */}
         {phase === 'result' && optimal && (() => {
           const userCost   = Math.round(routeCost(distMatrix, userRoute))
           const efficiency = Math.round((optimal.cost / userCost) * 100)
@@ -422,8 +515,8 @@ export default function TSPRealGame() {
           else                       { verdict = '🔁 Keep trying';  verdictColor = 'text-ink/60' }
 
           return (
-            <div className="absolute inset-0 flex items-end justify-center pb-6 bg-ink/30 backdrop-blur-[2px] p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+            <div className="absolute bottom-0 left-0 right-0 pointer-events-none pb-6 px-4 flex justify-center">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 pointer-events-auto">
                 <div className="text-center">
                   <div className={`text-xl font-bold ${verdictColor}`}>{verdict}</div>
                   <div className="text-xs text-ink/50 mt-0.5">Score: {efficiency}% efficiency</div>
