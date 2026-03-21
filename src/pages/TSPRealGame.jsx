@@ -490,7 +490,7 @@ export default function TSPRealGame() {
     if (pickedOverride) {
       picked = pickedOverride
     } else if (mode === 'landmarks') {
-      picked = previewLandmarks.length === count ? previewLandmarks : shuffle(allLandmarks).slice(0, count)
+      picked = (pickedOverride === null && previewLandmarks.length === count) ? previewLandmarks : shuffle(allLandmarks).slice(0, count)
     } else {
       // random mode — fetch fresh points
       const { data, error } = await supabase.rpc(CITY_CONFIG[city].rpcs.getRandomPoints, { n: count })
@@ -927,7 +927,7 @@ export default function TSPRealGame() {
                 </>}
 
                 <div className="flex gap-3">
-                  <button onClick={() => startGame(nodeCount)}
+                  <button onClick={() => startGame(nodeCount, undefined)}
                     className="flex-1 bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90">
                     Play again
                   </button>
