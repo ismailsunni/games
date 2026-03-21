@@ -184,18 +184,7 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
       }))
       markerSrc.current.addFeature(f)
 
-      // Pulsing dashed ring for unvisited, non-current landmarks during playing
-      if (phase === 'playing' && !visited && !isCurrent) {
-        const ring = new Feature({ geometry: new Point(fromLonLat([lm.lon, lm.lat])) })
-        ring.setStyle(new Style({
-          image: new CircleStyle({
-            radius: 28,
-            fill: new Fill({ color: 'transparent' }),
-            stroke: new Stroke({ color: '#6366f1', width: 1.5, lineDash: [4, 4] }),
-          })
-        }))
-        markerSrc.current.addFeature(ring)
-      }
+
     })
 
     // Draw user route — red (real street geometry when available, dashed straight line as placeholder)
