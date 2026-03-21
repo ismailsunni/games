@@ -192,7 +192,8 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
       const fromLm = landmarks[userRoute[i]]
       const toLm   = landmarks[userRoute[i + 1]]
       const segKey = `${fromLm.id}-${toLm.id}`
-      const geojsonStr = routeGeomMap[segKey]
+      const revKey = `${toLm.id}-${fromLm.id}`
+      const geojsonStr = routeGeomMap[segKey] || routeGeomMap[revKey]
 
       let line
       if (geojsonStr) {
@@ -229,7 +230,9 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
         const fromLm = landmarks[optRoute[i]]
         const toLm   = landmarks[optRoute[i + 1]]
         const segKey = `${fromLm.id}-${toLm.id}`
-        const geojsonStr = routeGeomMap[segKey]
+        const revKey = `${toLm.id}-${fromLm.id}`
+        // Roads are undirected — accept geometry cached in either direction
+        const geojsonStr = routeGeomMap[segKey] || routeGeomMap[revKey]
 
         let line
         if (geojsonStr) {
