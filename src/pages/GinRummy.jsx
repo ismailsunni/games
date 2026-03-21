@@ -263,7 +263,11 @@ export default function GinRummy() {
   const _save = loadSave()
   const [game, setGame] = useState(() => _save?.game ?? dealGame())
   const [selected, setSelected] = useState(null)       // card id selected for discard — don't persist
-  const [phase, setPhase] = useState(() => _save?.phase ?? 'draw')
+  // If saved mid-computer-turn (setTimeout lost on reload), reset to 'draw'
+  const [phase, setPhase] = useState(() => {
+    const p = _save?.phase ?? 'draw'
+    return p === 'computer' ? 'draw' : p
+  })
   const [drawnCardId, setDrawnCardId] = useState(null)   // visual only — don't persist
   const [discardingId, setDiscardingId] = useState(null) // card mid-discard-animation
   const [flyingCards, setFlyingCards] = useState([])     // flying card overlays
@@ -309,7 +313,10 @@ export default function GinRummy() {
     if (delay) setTimeout(fly, delay)
     else fly()
   }
-  const [message, setMessage] = useState(() => _save?.message ?? 'Draw a card to start!')
+  const [message, setMessage] = useState(() => {
+    const m = _save?.message ?? 'Draw a card to start!'
+    return _save?.phase === 'computer' ? 'Draw a card to start!' : m
+  })
   const [roundResult, setRoundResult] = useState(() => _save?.roundResult ?? null)
   const [showHelp, setShowHelp] = useState(false)
   const [showStats, setShowStats] = useState(false)
