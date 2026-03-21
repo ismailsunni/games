@@ -622,7 +622,8 @@ export default function MapGuesser() {
 
   function handlePlayAgain() {
     clearGameState()
-    window.location.reload()
+    setSavedState(null)
+    setPhase('home')
   }
 
   function buildShareText(results, filter, totalScore) {
@@ -904,7 +905,7 @@ export default function MapGuesser() {
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
         <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Gallery</a>
+          <button onClick={() => setPhase('home')} className="text-ink/50 hover:text-accent text-sm font-medium">← Home</button>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🗺️ Map Guesser</h1>
           <div className="w-12" />
         </header>

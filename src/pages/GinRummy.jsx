@@ -931,6 +931,7 @@ export default function GinRummy() {
       {/* Home screen */}
       {screen === 'home' && (
         <div className="fixed inset-0 bg-canvas z-40 flex flex-col items-center justify-center p-8">
+          <a href="#/" className="absolute top-4 left-4 text-ink/50 hover:text-accent text-sm font-medium">← Gallery</a>
           <div className="text-5xl mb-4">🃏</div>
           <h2 className="text-3xl font-bold text-ink mb-1">Gin Rummy</h2>
           <p className="text-ink/40 text-sm mb-8">Classic card game vs computer</p>
