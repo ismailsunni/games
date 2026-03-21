@@ -588,6 +588,7 @@ export default function GinRummy() {
       })
       const newGame = dealGame()
       setGame(() => ({ ...newGame, scores: { player: 0, computer: 0 } }))
+      clearSave()
       setScreen('home')
     } else {
       const newGame = dealGame()
