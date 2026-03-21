@@ -433,6 +433,7 @@ export default function TSPRealGame() {
     setLoadError('')
     setRouteGeomMap({})
     setUnlockMessage('')
+    try {
 
     let picked
     if (pickedOverride) {
@@ -465,7 +466,7 @@ export default function TSPRealGame() {
         if (fi >= 0 && ti >= 0) matrix[fi][ti] = row.cost_m
       })
     } else {
-      const ids = picked.map(l => BigInt(l.id))
+      const ids = picked.map(l => Number(l.id)) // BigInt can't be JSON-serialized; Postgres handles number→bigint
       const { data, error } = await supabase.rpc('get_random_point_distances', { vertex_ids: ids })
       if (error) { setLoadError('Routing error: ' + error.message); setPhase('lobby'); return }
       data.forEach(row => {
@@ -491,6 +492,10 @@ export default function TSPRealGame() {
         olMapRef.current.getView().fit(extent, { padding: [80, 40, 120, 40], maxZoom: 15, duration: 600 })
       }
     }, 100)
+    } catch (err) {
+      setLoadError('Unexpected error: ' + err.message)
+      setPhase('lobby')
+    }
   }, [allLandmarks, nodeCount, previewLandmarks, mode])
 
   function handleLandmarkClick(idx) {
