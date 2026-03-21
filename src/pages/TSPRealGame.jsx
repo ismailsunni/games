@@ -340,6 +340,13 @@ export default function TSPRealGame() {
 
     const startIdx   = userRoute[0]
     const allVisited = userRoute.length === n
+    const currentIdx = userRoute[userRoute.length - 1]
+
+    // Click current (last) node → undo it (but can't undo the very first node if it's the only one)
+    if (idx === currentIdx && userRoute.length > 1) {
+      setUserRoute(prev => prev.slice(0, -1))
+      return
+    }
 
     if (allVisited && idx === startIdx) {
       const final = [...userRoute, startIdx]
