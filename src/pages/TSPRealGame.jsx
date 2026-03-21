@@ -65,7 +65,9 @@ function routeCost(distMatrix, route) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const DIFFICULTIES = { 3: 'Easy', 4: 'Easy+', 5: 'Medium', 6: 'Hard', 7: 'Expert' }
+const DIFFICULTIES = { 3: 'Easy', 4: 'Easy+', 5: 'Medium', 6: 'Medium+', 7: 'Hard', 8: 'Hard+', 9: 'Expert', 10: 'Extreme' }
+
+const MODE_MAX_NODES = { landmarks: 7, random: 10 }
 
 function shuffle(arr) {
   const a = [...arr]
@@ -284,20 +286,22 @@ function clearSavedGame() { localStorage.removeItem('tsp_real_state') }
 
 // ── Main Game ─────────────────────────────────────────────────────────────────
 export default function TSPRealGame() {
-  const [allLandmarks, setAllLandmarks]       = useState([])
-  const [landmarks, setLandmarks]             = useState([])
-  const [previewLandmarks, setPreviewLandmarks] = useState([])
-  const [distMatrix, setDistMatrix]           = useState([])
-  const [nodeCount, setNodeCount]             = useState(5)
-  const [phase, setPhase]                     = useState('lobby') // lobby | loading | playing | result
-  const [userRoute, setUserRoute]             = useState([])
-  const [optimal, setOptimal]                 = useState(null)
-  const [stats, setStats]                     = useState(() => loadStats())
-  const [loadError, setLoadError]             = useState('')
-  const [showStats, setShowStats]             = useState(false)
-  const [routeGeomMap, setRouteGeomMap]       = useState({})
-  const [resultCollapsed, setResultCollapsed] = useState(false)
-  const [savedGame, setSavedGame]             = useState(() => loadSavedGame())
+  const [allLandmarks, setAllLandmarks]           = useState([])
+  const [landmarks, setLandmarks]                 = useState([])
+  const [previewLandmarks, setPreviewLandmarks]   = useState([])
+  const [previewLoading, setPreviewLoading]       = useState(false)
+  const [distMatrix, setDistMatrix]               = useState([])
+  const [nodeCount, setNodeCount]                 = useState(5)
+  const [mode, setMode]                           = useState('landmarks') // 'landmarks' | 'random'
+  const [phase, setPhase]                         = useState('lobby') // lobby | loading | playing | result
+  const [userRoute, setUserRoute]                 = useState([])
+  const [optimal, setOptimal]                     = useState(null)
+  const [stats, setStats]                         = useState(() => loadStats())
+  const [loadError, setLoadError]                 = useState('')
+  const [showStats, setShowStats]                 = useState(false)
+  const [routeGeomMap, setRouteGeomMap]           = useState({})
+  const [resultCollapsed, setResultCollapsed]     = useState(false)
+  const [savedGame, setSavedGame]                 = useState(() => loadSavedGame())
 
   // Map ref exposed upward for zoom-to-fit
   const olMapRef = useRef(null)
@@ -305,7 +309,11 @@ export default function TSPRealGame() {
   // Cache for geom fetches — persists across renders without causing re-renders
   const geomsCache = useRef({})
 
-  // Load all landmarks once
+  // Keep mode in a ref so fetchSegGeom (useCallback) always sees the latest value
+  const modeRef = useRef(mode)
+  useEffect(() => { modeRef.current = mode }, [mode])
+
+  // Load all landmarks once (landmarks mode only)
   useEffect(() => {
     supabase.rpc('get_landmarks').then(({ data, error }) => {
       if (error) { setLoadError('Failed to load landmarks: ' + error.message); return }
@@ -314,37 +322,86 @@ export default function TSPRealGame() {
     })
   }, [])
 
-  // Re-roll preview when nodeCount changes
+  // Re-roll preview when nodeCount or mode changes
   useEffect(() => {
-    if (allLandmarks.length > 0) {
-      setPreviewLandmarks(shuffle(allLandmarks).slice(0, nodeCount))
+    if (mode === 'landmarks') {
+      if (allLandmarks.length > 0) {
+        setPreviewLandmarks(shuffle(allLandmarks).slice(0, nodeCount))
+      }
+    } else {
+      // Random mode: pre-fetch random road points
+      let cancelled = false
+      setPreviewLoading(true)
+      setPreviewLandmarks([])
+      supabase.rpc('get_random_road_points', { n: nodeCount }).then(({ data, error }) => {
+        if (cancelled) return
+        setPreviewLoading(false)
+        if (error || !data) return
+        const normalized = data.map((pt, i) => ({
+          id: pt.pt_id,
+          name: `Point ${i + 1}`,
+          lat: pt.lat,
+          lon: pt.lon,
+        }))
+        setPreviewLandmarks(normalized)
+      })
+      return () => { cancelled = true }
     }
-  }, [nodeCount, allLandmarks])
+  }, [nodeCount, mode, allLandmarks])
+
+  // When switching mode, clamp nodeCount to new max
+  const handleModeChange = useCallback((newMode) => {
+    setMode(newMode)
+    const maxNodes = MODE_MAX_NODES[newMode]
+    setNodeCount(prev => Math.min(prev, maxNodes))
+  }, [])
 
   // Reset result collapse when entering result phase
   useEffect(() => {
     if (phase === 'result') setResultCollapsed(false)
   }, [phase])
 
-  const rerollLandmarks = useCallback(() => {
-    if (allLandmarks.length > 0) {
-      setPreviewLandmarks(shuffle(allLandmarks).slice(0, nodeCount))
+  const rerollLandmarks = useCallback(async () => {
+    if (mode === 'landmarks') {
+      if (allLandmarks.length > 0) {
+        setPreviewLandmarks(shuffle(allLandmarks).slice(0, nodeCount))
+      }
+    } else {
+      setPreviewLoading(true)
+      setPreviewLandmarks([])
+      const { data, error } = await supabase.rpc('get_random_road_points', { n: nodeCount })
+      setPreviewLoading(false)
+      if (error || !data) return
+      const normalized = data.map((pt, i) => ({
+        id: pt.pt_id,
+        name: `Point ${i + 1}`,
+        lat: pt.lat,
+        lon: pt.lon,
+      }))
+      setPreviewLandmarks(normalized)
     }
-  }, [allLandmarks, nodeCount])
+  }, [allLandmarks, nodeCount, mode])
 
   // Fetch segment geometry (real street route) — non-blocking, updates state when ready
-  const fetchSegGeom = useCallback(async (fromLandmarkId, toLandmarkId) => {
-    const key = `${fromLandmarkId}-${toLandmarkId}`
+  const fetchSegGeom = useCallback(async (fromId, toId) => {
+    const key = `${fromId}-${toId}`
     if (geomsCache.current[key]) {
-      // Already cached — ensure state reflects it
       setRouteGeomMap(prev => prev[key] ? prev : { ...prev, [key]: geomsCache.current[key] })
       return
     }
 
-    const { data, error } = await supabase.rpc('get_route_geojson', {
-      from_landmark_id: fromLandmarkId,
-      to_landmark_id: toLandmarkId,
-    })
+    let data, error
+    if (modeRef.current === 'landmarks') {
+      ({ data, error } = await supabase.rpc('get_route_geojson', {
+        from_landmark_id: fromId,
+        to_landmark_id: toId,
+      }))
+    } else {
+      ({ data, error } = await supabase.rpc('get_vertex_route_geojson', {
+        from_vertex_id: fromId,
+        to_vertex_id: toId,
+      }))
+    }
     if (error || !data) return
 
     geomsCache.current[key] = data
@@ -353,26 +410,52 @@ export default function TSPRealGame() {
 
   // Pick random landmarks and fetch distances
   const startGame = useCallback(async (count = nodeCount, pickedOverride = null) => {
-    if (allLandmarks.length === 0) return
+    if (mode === 'landmarks' && allLandmarks.length === 0) return
     setPhase('loading')
     setUserRoute([])
     setLoadError('')
     setRouteGeomMap({})
 
-    const picked = pickedOverride ?? (previewLandmarks.length === count ? previewLandmarks : shuffle(allLandmarks).slice(0, count))
-    const ids = picked.map(l => l.id)
+    let picked
+    if (pickedOverride) {
+      picked = pickedOverride
+    } else if (mode === 'landmarks') {
+      picked = previewLandmarks.length === count ? previewLandmarks : shuffle(allLandmarks).slice(0, count)
+    } else {
+      // random mode — fetch fresh points
+      const { data, error } = await supabase.rpc('get_random_road_points', { n: count })
+      if (error || !data) { setLoadError('Failed to fetch random points: ' + (error?.message || '')); setPhase('lobby'); return }
+      picked = data.map((pt, i) => ({
+        id: pt.pt_id,
+        name: `Point ${i + 1}`,
+        lat: pt.lat,
+        lon: pt.lon,
+      }))
+    }
 
-    const { data, error } = await supabase.rpc('get_tsp_distances', { landmark_ids: ids })
-    if (error) { setLoadError('Routing error: ' + error.message); setPhase('lobby'); return }
-
-    // Build n×n distance matrix indexed by position in `picked`
+    // Build distance matrix
     const n = picked.length
     const matrix = Array.from({ length: n }, () => new Array(n).fill(0))
-    data.forEach(row => {
-      const fi = picked.findIndex(l => l.id === row.from_landmark)
-      const ti = picked.findIndex(l => l.id === row.to_landmark)
-      if (fi >= 0 && ti >= 0) matrix[fi][ti] = row.cost_m
-    })
+
+    if (mode === 'landmarks') {
+      const ids = picked.map(l => l.id)
+      const { data, error } = await supabase.rpc('get_tsp_distances', { landmark_ids: ids })
+      if (error) { setLoadError('Routing error: ' + error.message); setPhase('lobby'); return }
+      data.forEach(row => {
+        const fi = picked.findIndex(l => l.id === row.from_landmark)
+        const ti = picked.findIndex(l => l.id === row.to_landmark)
+        if (fi >= 0 && ti >= 0) matrix[fi][ti] = row.cost_m
+      })
+    } else {
+      const ids = picked.map(l => BigInt(l.id))
+      const { data, error } = await supabase.rpc('get_random_point_distances', { vertex_ids: ids })
+      if (error) { setLoadError('Routing error: ' + error.message); setPhase('lobby'); return }
+      data.forEach(row => {
+        const fi = picked.findIndex(l => l.id === row.from_vertex)
+        const ti = picked.findIndex(l => l.id === row.to_vertex)
+        if (fi >= 0 && ti >= 0) matrix[fi][ti] = row.cost_m
+      })
+    }
 
     const opt = solveHeldKarp(matrix, n)
     clearSavedGame()
@@ -390,7 +473,7 @@ export default function TSPRealGame() {
         olMapRef.current.getView().fit(extent, { padding: [80, 40, 120, 40], maxZoom: 15, duration: 600 })
       }
     }, 100)
-  }, [allLandmarks, nodeCount, previewLandmarks])
+  }, [allLandmarks, nodeCount, previewLandmarks, mode])
 
   function handleLandmarkClick(idx) {
     if (phase !== 'playing') return
@@ -537,23 +620,48 @@ export default function TSPRealGame() {
 
               {loadError && <p className="text-xs text-red-500 text-center">{loadError}</p>}
 
+              {/* Mode selector */}
+              <div className="flex gap-2">
+                {[['landmarks', '📍 Landmarks'], ['random', '🎲 Random']].map(([val, label]) => (
+                  <button key={val} onClick={() => handleModeChange(val)}
+                    className={['flex-1 py-2 text-sm font-medium rounded-lg border transition-colors',
+                      mode === val ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Node count slider */}
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between">
-                  <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Landmarks</span>
-                  <span className="text-xs font-bold text-accent">{DIFFICULTIES[nodeCount]}</span>
+                  <span className="text-xs font-semibold text-ink/50 uppercase tracking-wider">
+                    {mode === 'landmarks' ? 'Landmarks' : 'Points'}
+                  </span>
+                  <span className="text-xs font-bold text-accent">{DIFFICULTIES[nodeCount] || 'nodes'}</span>
                 </div>
-                <div className="flex gap-1.5">
-                  {[3,4,5,6,7].map(n => (
-                    <button key={n} onClick={() => setNodeCount(n)}
-                      className={['flex-1 py-2 text-sm font-medium rounded-lg border transition-colors',
-                        nodeCount === n ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
-                      {n}
-                    </button>
-                  ))}
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between text-xs text-ink/40">
+                    <span>3</span>
+                    <span className="font-bold text-accent text-sm">{nodeCount} {DIFFICULTIES[nodeCount] || 'nodes'}</span>
+                    <span>{MODE_MAX_NODES[mode]}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={3}
+                    max={MODE_MAX_NODES[mode]}
+                    step={1}
+                    value={nodeCount}
+                    onChange={e => setNodeCount(+e.target.value)}
+                    className="w-full accent-accent"
+                  />
                 </div>
               </div>
 
-              {previewLandmarks.length > 0 && (
+              {/* Preview pills */}
+              {previewLoading && (
+                <div className="text-xs text-ink/40 text-center animate-pulse">Fetching random points…</div>
+              )}
+              {!previewLoading && previewLandmarks.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {previewLandmarks.map(lm => (
                     <span key={lm.id} className="text-[10px] bg-ink/5 border border-ink/10 rounded-full px-2 py-0.5 text-ink/60">{lm.name}</span>
@@ -563,11 +671,13 @@ export default function TSPRealGame() {
 
               <button onClick={rerollLandmarks}
                 className="text-sm border border-ink/20 text-ink/60 hover:text-accent hover:border-accent py-2 rounded-lg transition-colors w-full">
-                🔄 Re-roll landmarks
+                🔄 Re-roll {mode === 'landmarks' ? 'landmarks' : 'points'}
               </button>
 
               <p className="text-xs text-ink/40 text-center">
-                {allLandmarks.length > 0 ? `${allLandmarks.length} Ljubljana landmarks loaded` : 'Loading landmarks…'}
+                {mode === 'landmarks'
+                  ? (allLandmarks.length > 0 ? `${allLandmarks.length} Ljubljana landmarks loaded` : 'Loading landmarks…')
+                  : 'Random road points · Ljubljana'}
               </p>
 
               {savedGame && (
@@ -578,8 +688,8 @@ export default function TSPRealGame() {
                 </button>
               )}
 
-              <button onClick={() => startGame(nodeCount, previewLandmarks)}
-                disabled={allLandmarks.length === 0}
+              <button onClick={() => startGame(nodeCount, mode === 'landmarks' ? previewLandmarks : null)}
+                disabled={mode === 'landmarks' && allLandmarks.length === 0}
                 className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40">
                 Play →
               </button>
