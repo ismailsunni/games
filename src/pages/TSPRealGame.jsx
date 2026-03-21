@@ -116,7 +116,7 @@ const CITY_CONFIG = {
 const geojsonFormat = new GeoJSON()
 
 // ── Map component ─────────────────────────────────────────────────────────────
-function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, routeGeomMap, olMapRef: olMapRefProp }) {
+function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, routeGeomMap, olMapRef: olMapRefProp, city }) {
   const mapRef       = useRef(null)
   const olMapRef     = useRef(null)
   const routeSrc     = useRef(new VectorSource())
@@ -169,6 +169,17 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
     if (olMapRefProp) olMapRefProp.current = map
     return () => map.setTarget(null)
   }, []) // eslint-disable-line
+
+  // Pan to city whenever city prop changes (or on first render)
+  useEffect(() => {
+    if (!olMapRef.current) return
+    const cfg = CITY_CONFIG[city]
+    const extent = transformExtent(cfg.bounds, 'EPSG:4326', 'EPSG:3857')
+    olMapRef.current.getView().fit(extent, {
+      size: olMapRef.current.getSize() || [375, 600],
+      duration: 500,
+    })
+  }, [city])
 
   // Update markers when landmarks/route/geoms changes
   useEffect(() => {
@@ -376,15 +387,6 @@ export default function TSPRealGame() {
       setAllLandmarks(data)
       setPreviewLandmarks(shuffle(data).slice(0, 5))
     })
-  }, [city])
-
-  // When city changes, reset map view
-  useEffect(() => {
-    if (olMapRef.current) {
-      const cfg = CITY_CONFIG[city]
-      const extent = transformExtent(cfg.bounds, 'EPSG:4326', 'EPSG:3857')
-      olMapRef.current.getView().fit(extent, { duration: 500 })
-    }
   }, [city])
 
   // Re-roll preview when nodeCount or mode changes
@@ -689,6 +691,7 @@ export default function TSPRealGame() {
           phase={phase}
           routeGeomMap={routeGeomMap}
           olMapRef={olMapRef}
+          city={city}
         />
 
         {/* Home overlay */}
