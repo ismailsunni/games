@@ -134,7 +134,7 @@ const CITY_CONFIG = {
 const geojsonFormat = new GeoJSON()
 
 // ── Map component ─────────────────────────────────────────────────────────────
-function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, routeGeomMap, olMapRef: olMapRefProp, city }) {
+function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, routeGeomMap, olMapRef: olMapRefProp, city, mode }) {
   const mapRef       = useRef(null)
   const olMapRef     = useRef(null)
   const routeSrc     = useRef(new VectorSource())
@@ -244,20 +244,26 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
 
       const visitOrder = userRoute.indexOf(idx)
       const isNumbered = visitOrder > 0
+      const isRandom   = mode === 'random'
 
-      // 8-direction label offsets; arrow points TOWARD the dot from the label
+      // Random mode: always show short number label centered in circle
+      // Landmarks mode: offset label with direction arrow when unvisited
       const OFFSETS = [
-        [0, -38, 'center', 'bottom', '▼'],   // above
-        [30, -30, 'left',   'bottom', '↙'],   // top-right
-        [38, 0,  'left',   'middle', '←'],   // right
-        [30, 30, 'left',   'top',    '↖'],   // bottom-right
-        [0, 38,  'center', 'top',    '▲'],   // below
-        [-30, 30, 'right',  'top',    '↗'],  // bottom-left
-        [-38, 0, 'right',  'middle', '→'],   // left
-        [-30, -30, 'right', 'bottom', '↘'],  // top-left
+        [0, -38, 'center', 'bottom', '▼'],
+        [30, -30, 'left',   'bottom', '↙'],
+        [38, 0,   'left',   'middle', '←'],
+        [30, 30,  'left',   'top',    '↖'],
+        [0, 38,   'center', 'top',    '▲'],
+        [-30, 30, 'right',  'top',    '↗'],
+        [-38, 0,  'right',  'middle', '→'],
+        [-30, -30,'right',  'bottom', '↘'],
       ]
       const [ox, oy, align, baseline, arrow] = OFFSETS[idx % 8]
-      const labelText = isNumbered ? String(visitOrder) : `${arrow} ${lm.name}`
+      // For random mode unvisited: show idx+1 centered; for landmarks: offset arrow label
+      const labelText = isNumbered
+        ? String(visitOrder)
+        : isRandom ? String(idx + 1) : `${arrow} ${lm.name}`
+      const useOffset = !isNumbered && !isRandom
 
       const f = new Feature({ geometry: new Point(fromLonLat([lm.lon, lm.lat])) })
       f.set('lmIdx', idx)
@@ -269,18 +275,18 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
           stroke: new Stroke({ color: stroke, width: 2.5 }),
         }),
         text: new Text({
-          text: isNumbered ? labelText : labelText,
-          offsetX: isNumbered ? 0 : ox,
-          offsetY: isNumbered ? 0 : oy,
-          textAlign: isNumbered ? 'center' : align,
-          textBaseline: isNumbered ? 'middle' : baseline,
-          font: isNumbered
+          text: labelText,
+          offsetX: useOffset ? ox : 0,
+          offsetY: useOffset ? oy : 0,
+          textAlign: useOffset ? align : 'center',
+          textBaseline: useOffset ? baseline : 'middle',
+          font: (isNumbered || isRandom)
             ? 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             : '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fill: new Fill({ color: isNumbered ? textColor : '#1f2937' }),
-          backgroundFill: isNumbered ? null : new Fill({ color: 'rgba(255,255,255,0.92)' }),
-          backgroundStroke: isNumbered ? null : new Stroke({ color: 'rgba(0,0,0,0.12)', width: 1 }),
-          padding: isNumbered ? null : [2, 5, 2, 5],
+          fill: new Fill({ color: (isNumbered || isRandom) ? textColor : '#1f2937' }),
+          backgroundFill: useOffset ? new Fill({ color: 'rgba(255,255,255,0.92)' }) : null,
+          backgroundStroke: useOffset ? new Stroke({ color: 'rgba(0,0,0,0.12)', width: 1 }) : null,
+          padding: useOffset ? [2, 5, 2, 5] : null,
         }),
       }))
       markerSrc.current.addFeature(f)
@@ -428,7 +434,7 @@ export default function TSPRealGame() {
   const [distMatrix, setDistMatrix]               = useState([])
   const [nodeCount, setNodeCount]                 = useState(5)
   const [mode, setMode]                           = useState('landmarks') // 'landmarks' | 'random'
-  const [city, setCity]                           = useState('ljubljana') // 'ljubljana' | 'munich'
+  const [city, setCity]                           = useState(() => localStorage.getItem('tsp_city') || 'yogyakarta')
   const [phase, setPhase]                         = useState('home') // home | config | loading | playing | result
   const [userRoute, setUserRoute]                 = useState([])
   const [optimal, setOptimal]                     = useState(null)
@@ -767,6 +773,7 @@ export default function TSPRealGame() {
           routeGeomMap={routeGeomMap}
           olMapRef={olMapRef}
           city={city}
+          mode={mode}
         />
 
         {/* Home overlay */}
@@ -818,8 +825,8 @@ export default function TSPRealGame() {
               <div className="flex flex-col gap-1">
                 <div className="text-xs font-semibold text-ink/40 uppercase tracking-wider">City</div>
                 <div className="flex flex-wrap gap-2">
-                  {[['ljubljana', '🇸🇮 Ljubljana'], ['munich', '🇩🇪 München'], ['yogyakarta', '🇮🇩 Yogyakarta']].map(([val, label]) => (
-                    <button key={val} onClick={() => setCity(val)}
+                  {[['yogyakarta', '🇮🇩 Yogyakarta'], ['munich', '🇩🇪 München'], ['ljubljana', '🇸🇮 Ljubljana']].map(([val, label]) => (
+                    <button key={val} onClick={() => { setCity(val); localStorage.setItem('tsp_city', val) }}
                       className={['px-2 py-1.5 text-xs font-medium rounded-lg border transition-colors',
                         city === val ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
                       {label}
@@ -996,8 +1003,45 @@ export default function TSPRealGame() {
                 </div>
 
                 <div className="text-xs text-ink/50 space-y-1">
-                  <div><span className="text-red-400 font-semibold">Your:</span> {userRoute.slice(0,-1).map(i => landmarks[i]?.name).join(' → ')} → {landmarks[userRoute[0]]?.name}</div>
-                  <div><span className="text-green-600 font-semibold">Optimal:</span> {optimal.route.slice(0,-1).map(i => landmarks[i]?.name).join(' → ')} → {landmarks[optimal.route[0]]?.name}</div>
+                  {(() => {
+                    const userStart = userRoute[0]
+                    // Rotate optimal cycle to start at same node as user
+                    const optCycle = optimal.route.slice(0, -1) // drop closing node
+                    const rotStart = optCycle.indexOf(userStart)
+                    const optRotated = rotStart >= 0
+                      ? [...optCycle.slice(rotStart), ...optCycle.slice(0, rotStart), userStart]
+                      : optimal.route
+                    return (
+                      <>
+                        <div>
+                          <span className="text-red-400 font-semibold">Your: </span>
+                          {userRoute.slice(0,-1).map((idx, pos) => (
+                            <span key={pos}>
+                              {pos > 0 && <span className="text-ink/30"> → </span>}
+                              <span className={optRotated[pos] !== idx ? 'font-bold text-red-500' : ''}>
+                                {landmarks[idx]?.name}
+                              </span>
+                            </span>
+                          ))}
+                          <span className="text-ink/30"> → </span>
+                          <span>{landmarks[userRoute[0]]?.name}</span>
+                        </div>
+                        <div>
+                          <span className="text-green-600 font-semibold">Opt: </span>
+                          {optRotated.slice(0,-1).map((idx, pos) => (
+                            <span key={pos}>
+                              {pos > 0 && <span className="text-ink/30"> → </span>}
+                              <span className={userRoute[pos] !== idx ? 'font-bold text-green-600' : ''}>
+                                {landmarks[idx]?.name}
+                              </span>
+                            </span>
+                          ))}
+                          <span className="text-ink/30"> → </span>
+                          <span>{landmarks[userStart]?.name}</span>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
                 </>}
 
