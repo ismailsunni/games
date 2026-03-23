@@ -8,6 +8,7 @@ import XYZ from 'ol/source/XYZ'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import LineString from 'ol/geom/LineString'
+import Polygon from 'ol/geom/Polygon'
 import GeoJSON from 'ol/format/GeoJSON'
 import { fromLonLat, transformExtent } from 'ol/proj'
 import { boundingExtent } from 'ol/extent'
@@ -87,6 +88,7 @@ const CITY_CONFIG = {
     flag: '🇸🇮',
     center: [14.5058, 46.0511],
     bounds: [14.41, 45.98, 14.62, 46.12],
+    dbBbox: [14.44, 46.01, 14.58, 46.09],  // actual OSM data coverage
     rpcs: {
       getLandmarks: 'get_landmarks',
       getTspDistances: 'get_tsp_distances',
@@ -101,6 +103,7 @@ const CITY_CONFIG = {
     flag: '🇩🇪',
     center: [11.576, 48.137],
     bounds: [11.41, 48.06, 11.72, 48.22],
+    dbBbox: [11.49, 48.09, 11.66, 48.19],  // actual OSM data coverage
     rpcs: {
       getLandmarks: 'get_munich_landmarks',
       getTspDistances: 'get_munich_tsp_distances',
@@ -114,6 +117,7 @@ const CITY_CONFIG = {
     label: 'Yogyakarta',
     flag: '🇮🇩',
     center: [110.3672, -7.7972],
+    dbBbox: [110.35, -7.83, 110.43, -7.77],  // actual OSM data coverage
     bounds: [110.34, -7.84, 110.45, -7.75],
     rpcs: {
       getLandmarks: 'get_yogyakarta_landmarks',
@@ -135,6 +139,8 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
   const olMapRef     = useRef(null)
   const routeSrc     = useRef(new VectorSource())
   const markerSrc    = useRef(new VectorSource())
+  const bboxSrc      = useRef(new VectorSource())
+  const [showBbox, setShowBbox] = useState(false)
   // Keep callback ref fresh so OL click handler always calls latest version
   const onClickRef   = useRef(onLandmarkClick)
   useEffect(() => { onClickRef.current = onLandmarkClick }, [onLandmarkClick])
@@ -153,6 +159,7 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
         }),
         new VectorLayer({ source: routeSrc.current, zIndex: 1 }),
         new VectorLayer({ source: markerSrc.current, zIndex: 2 }),
+        new VectorLayer({ source: bboxSrc.current, zIndex: 0 }),
       ],
       view: new View({
         center: LJ_CENTER,
@@ -183,6 +190,22 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
     if (olMapRefProp) olMapRefProp.current = map
     return () => map.setTarget(null)
   }, []) // eslint-disable-line
+
+  // Draw/clear DB coverage bbox
+  useEffect(() => {
+    bboxSrc.current.clear()
+    if (!showBbox) return
+    const [minLon, minLat, maxLon, maxLat] = CITY_CONFIG[city].dbBbox
+    const ring = [
+      [minLon, minLat], [maxLon, minLat], [maxLon, maxLat], [minLon, maxLat], [minLon, minLat]
+    ].map(([lon, lat]) => fromLonLat([lon, lat]))
+    const feature = new Feature({ geometry: new Polygon([ring]) })
+    feature.setStyle(new Style({
+      stroke: new Stroke({ color: 'rgba(251,191,36,0.9)', width: 2, lineDash: [6, 4] }),
+      fill:   new Fill({ color: 'rgba(251,191,36,0.06)' }),
+    }))
+    bboxSrc.current.addFeature(feature)
+  }, [showBbox, city])
 
   // Pan to city whenever city prop changes (or on first render)
   useEffect(() => {
@@ -319,7 +342,22 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
     }
   }, [landmarks, userRoute, optRoute, phase, routeGeomMap])
 
-  return <div ref={mapRef} className="w-full h-full" />
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapRef} className="w-full h-full" />
+      <button
+        onClick={() => setShowBbox(v => !v)}
+        title="Toggle DB coverage area"
+        className={`absolute bottom-10 right-2 z-10 px-2 py-1 rounded text-xs font-semibold border transition-colors ${
+          showBbox
+            ? 'bg-amber-400/90 text-amber-900 border-amber-500'
+            : 'bg-black/50 text-white/70 border-white/20 hover:bg-black/70'
+        }`}
+      >
+        {showBbox ? '🗺 Hide coverage' : '🗺 Show coverage'}
+      </button>
+    </div>
+  )
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────
