@@ -152,7 +152,7 @@ function dealGame() {
   const computerHand = deck.slice(10, 20)
   const stock = deck.slice(21)
   const discard = [deck[20]]
-  return { playerHand, computerHand, stock, discard, scores: { player: 0, computer: 0 } }
+  return { playerHand, computerHand, stock, discard, scores: { player: 0, computer: 0 }, reshuffleCount: 0 }
 }
 
 // ── Meld color palette ────────────────────────────────────────
@@ -355,7 +355,11 @@ export default function GinRummy() {
     if (phase !== 'draw') return
     let drawn, newStock = [...stock], newDiscard = [...discard]
     if (from === 'stock') {
-      if (!newStock.length) { newStock = shuffle(newDiscard.slice(0, -1)); newDiscard = [newDiscard.at(-1)] }
+      if (!newStock.length) {
+        if ((game.reshuffleCount ?? 0) >= 1) { triggerShowdown(); return }
+        newStock = shuffle(newDiscard.slice(0, -1)); newDiscard = [newDiscard.at(-1)]
+        setGame(g => ({ ...g, reshuffleCount: (g.reshuffleCount ?? 0) + 1, stock: newStock, discard: newDiscard }))
+      }
       drawn = newStock.pop()
     } else {
       drawn = newDiscard.pop()
@@ -418,6 +422,49 @@ export default function GinRummy() {
     }, 200)
   }
 
+  function triggerShowdown() {
+    const pDW = bestMelds(game.playerHand).deadwoodValue
+    const cDW = bestMelds(game.computerHand).deadwoodValue
+    const pHand = [...game.playerHand]
+    const cHand = [...game.computerHand]
+    let sc = { ...game.scores }
+    let msg = ''
+
+    if (pDW === 0 && cDW === 0) {
+      msg = 'Showdown — both Gin! No points scored.'
+    } else if (pDW === 0) {
+      const d = 25 + cDW; sc.player += d
+      msg = `Showdown — you have Gin! You score ${d} pts (25 + ${cDW}).`
+    } else if (cDW === 0) {
+      const d = 25 + pDW; sc.computer += d
+      msg = `Showdown — Computer has Gin! Computer scores ${d} pts (25 + ${pDW}).`
+    } else if (pDW <= 10 && cDW <= 10) {
+      if (pDW > cDW)      { const d = pDW - cDW; sc.player += d;   msg = `Showdown — both knock-ready, higher wins! Your ${pDW} beats ${cDW}. You score ${d} pts.` }
+      else if (cDW > pDW) { const d = cDW - pDW; sc.computer += d; msg = `Showdown — both knock-ready, higher wins! Computer's ${cDW} beats ${pDW}. Computer scores ${d} pts.` }
+      else                { msg = `Showdown — both knock-ready and tied at ${pDW}! No points.` }
+    } else if (pDW <= 10) {
+      const d = cDW - pDW; sc.player += d
+      msg = `Showdown — you were knock-ready (${pDW} vs ${cDW})! You score ${d} pts.`
+    } else if (cDW <= 10) {
+      const d = pDW - cDW; sc.computer += d
+      msg = `Showdown — Computer was knock-ready (${cDW} vs ${pDW})! Computer scores ${d} pts.`
+    } else {
+      if (pDW < cDW)      { const d = cDW - pDW; sc.player += d;   msg = `Showdown — lower deadwood wins! Your ${pDW} beats ${cDW}. You score ${d} pts.` }
+      else if (cDW < pDW) { const d = pDW - cDW; sc.computer += d; msg = `Showdown — lower deadwood wins! Computer's ${cDW} beats ${pDW}. Computer scores ${d} pts.` }
+      else                { msg = `Showdown — tied at ${pDW}! No points.` }
+    }
+
+    const playerWonRound = sc.player > game.scores.player
+    setStats(prev => {
+      const next = { ...prev, roundsWon: prev.roundsWon + (playerWonRound ? 1 : 0), roundsLost: prev.roundsLost + (playerWonRound ? 0 : 1) }
+      saveStats(next); return next
+    })
+    setRoundResult({ msg, playerHand: pHand, computerHand: cHand, pDW, cDW, isShowdown: true })
+    setGame(g => ({ ...g, scores: sc, playerHand: pHand, computerHand: cHand }))
+    setPhase('result')
+    setMessage(msg)
+  }
+
   function doKnock() {
     if (phase !== 'discard') return
     let cardToDiscard
@@ -456,7 +503,11 @@ export default function GinRummy() {
     if (drawFrom === 'discard') {
       newCompHand.push(newDiscard.pop())
     } else {
-      if (!newStock.length) { newStock = shuffle(newDiscard.slice(0, -1)); newDiscard = [newDiscard.at(-1)] }
+      if (!newStock.length) {
+        if ((game.reshuffleCount ?? 0) >= 1) { triggerShowdown(); return }
+        newStock = shuffle(newDiscard.slice(0, -1)); newDiscard = [newDiscard.at(-1)]
+        setGame(g => ({ ...g, reshuffleCount: (g.reshuffleCount ?? 0) + 1 }))
+      }
       newCompHand.push(newStock.pop())
     }
 
@@ -1107,6 +1158,7 @@ export default function GinRummy() {
                   <li><strong>Gin</strong> 🎉 — deadwood = 0. Score = 25 + opponent's DW</li>
                   <li><strong>Super Gin</strong> 🌟 — Gin with a 5-card same-suit run. Score = 50 + opponent's DW</li>
                   <li><strong>Undercut</strong> — if you knock but your opponent's DW ≤ yours, opponent scores 25 + difference</li>
+                  <li><strong>Showdown</strong> — if the stock runs out twice, both hands are revealed. Gin (0) always wins. Both ≤ 10: higher deadwood wins. Both &gt; 10: lower wins. Only one ≤ 10: that player wins.</li>
                 </ul>
               </section>
 
