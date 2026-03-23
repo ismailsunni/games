@@ -243,7 +243,21 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
       }
 
       const visitOrder = userRoute.indexOf(idx)
-      const label = visitOrder > 0 ? String(visitOrder) : lm.name.split(' ')[0]
+      const isNumbered = visitOrder > 0
+
+      // 8-direction label offsets; arrow points TOWARD the dot from the label
+      const OFFSETS = [
+        [0, -38, 'center', 'bottom', '▼'],   // above
+        [30, -30, 'left',   'bottom', '↙'],   // top-right
+        [38, 0,  'left',   'middle', '←'],   // right
+        [30, 30, 'left',   'top',    '↖'],   // bottom-right
+        [0, 38,  'center', 'top',    '▲'],   // below
+        [-30, 30, 'right',  'top',    '↗'],  // bottom-left
+        [-38, 0, 'right',  'middle', '→'],   // left
+        [-30, -30, 'right', 'bottom', '↘'],  // top-left
+      ]
+      const [ox, oy, align, baseline, arrow] = OFFSETS[idx % 8]
+      const labelText = isNumbered ? String(visitOrder) : `${arrow} ${lm.name}`
 
       const f = new Feature({ geometry: new Point(fromLonLat([lm.lon, lm.lat])) })
       f.set('lmIdx', idx)
@@ -255,9 +269,18 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
           stroke: new Stroke({ color: stroke, width: 2.5 }),
         }),
         text: new Text({
-          text: label,
-          font: 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fill: new Fill({ color: textColor }),
+          text: isNumbered ? labelText : labelText,
+          offsetX: isNumbered ? 0 : ox,
+          offsetY: isNumbered ? 0 : oy,
+          textAlign: isNumbered ? 'center' : align,
+          textBaseline: isNumbered ? 'middle' : baseline,
+          font: isNumbered
+            ? 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            : '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fill: new Fill({ color: isNumbered ? textColor : '#1f2937' }),
+          backgroundFill: isNumbered ? null : new Fill({ color: 'rgba(255,255,255,0.92)' }),
+          backgroundStroke: isNumbered ? null : new Stroke({ color: 'rgba(0,0,0,0.12)', width: 1 }),
+          padding: isNumbered ? null : [2, 5, 2, 5],
         }),
       }))
       markerSrc.current.addFeature(f)
@@ -348,7 +371,7 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
       <button
         onClick={() => setShowBbox(v => !v)}
         title="Toggle DB coverage area"
-        className={`absolute bottom-10 right-2 z-10 px-2 py-1 rounded text-xs font-semibold border transition-colors ${
+        className={`absolute bottom-16 right-2 z-10 px-2 py-1 rounded text-xs font-semibold border transition-colors ${
           showBbox
             ? 'bg-amber-400/90 text-amber-900 border-amber-500'
             : 'bg-black/50 text-white/70 border-white/20 hover:bg-black/70'
@@ -714,21 +737,21 @@ export default function TSPRealGame() {
   const currentCost = userRoute.length >= 2 ? Math.round(routeCost(distMatrix, userRoute)) : 0
 
   return (
-    <div className="h-screen flex flex-col bg-paper font-body">
+    <div className="h-[100dvh] flex flex-col bg-paper font-body">
       {/* Header */}
-      <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-2 shrink-0 z-10">
+      <header className="border-b border-ink/10 bg-canvas px-3 py-2 flex items-center gap-2 shrink-0 z-10">
         <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Gallery</a>
-        <h1 className="font-display text-lg font-bold text-ink flex-1">🗺️ TSP Cities</h1>
+        <h1 className="font-display text-base font-bold text-ink flex-1">🗺️ TSP Cities</h1>
         {phase !== 'home' && (
           <button onClick={() => setShowStats(true)}
             className="text-sm text-ink/50 hover:text-accent font-medium border border-ink/20 px-3 py-1.5 rounded-lg hover:border-accent shrink-0">
-            📊 Stats
+            📊 <span className="hidden sm:inline">Stats</span>
           </button>
         )}
         {phase === 'playing' && (
           <button onClick={() => setPhase('home')}
             className="text-sm text-ink/50 hover:text-red-400 border border-ink/20 px-3 py-1.5 rounded-lg hover:border-red-300 shrink-0">
-            ≡ Menu
+            ≡ <span className="hidden sm:inline">Menu</span>
           </button>
         )}
       </header>
@@ -779,7 +802,7 @@ export default function TSPRealGame() {
         {/* Config overlay */}
         {phase === 'config' && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5 overflow-y-auto max-h-[90vh]">
               <div className="flex items-center gap-2">
                 <button onClick={() => setPhase('home')} className="text-ink/50 hover:text-accent text-sm font-medium">← Back</button>
                 <div className="flex-1 text-center">
@@ -794,10 +817,10 @@ export default function TSPRealGame() {
               {/* City selector */}
               <div className="flex flex-col gap-1">
                 <div className="text-xs font-semibold text-ink/40 uppercase tracking-wider">City</div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {[['ljubljana', '🇸🇮 Ljubljana'], ['munich', '🇩🇪 München'], ['yogyakarta', '🇮🇩 Yogyakarta']].map(([val, label]) => (
                     <button key={val} onClick={() => setCity(val)}
-                      className={['flex-1 py-2 text-sm font-medium rounded-lg border transition-colors',
+                      className={['px-2 py-1.5 text-xs font-medium rounded-lg border transition-colors',
                         city === val ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
                       {label}
                     </button>
@@ -879,7 +902,7 @@ export default function TSPRealGame() {
         {phase === 'playing' && (
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-              <div className="bg-white/90 backdrop-blur-sm border border-ink/10 rounded-xl px-3 py-2 shadow-sm text-sm text-ink/70">
+              <div className="bg-white/90 backdrop-blur-sm border border-ink/10 rounded-xl px-2 py-1.5 shadow-sm text-xs text-ink/70">
                 {userRoute.length === 0 && 'Tap a landmark to start'}
                 {userRoute.length > 0 && !allVisited && (
                   <span><strong className="text-ink">{n - userRoute.length}</strong> more to visit</span>
@@ -888,7 +911,7 @@ export default function TSPRealGame() {
               </div>
               <div className="flex items-center gap-2 pointer-events-auto">
                 {currentCost > 0 && (
-                  <div className="bg-white/90 backdrop-blur-sm border border-ink/10 rounded-xl px-3 py-2 shadow-sm text-center">
+                  <div className="bg-white/90 backdrop-blur-sm border border-ink/10 rounded-xl px-2 py-1.5 shadow-sm text-center">
                     <div className="text-[10px] text-ink/40 leading-none">Distance</div>
                     <div className="text-sm font-bold text-accent">{(currentCost/1000).toFixed(1)} km</div>
                   </div>
@@ -903,7 +926,7 @@ export default function TSPRealGame() {
             </div>
 
             {userRoute.length > 0 && (
-              <div className="absolute bottom-3 left-3 right-3 pointer-events-auto">
+              <div className="absolute bottom-4 left-3 right-3 pointer-events-auto">
                 <div className="bg-white/90 backdrop-blur-sm border border-ink/10 rounded-xl px-3 py-2 shadow-sm text-xs text-ink/60 overflow-x-auto whitespace-nowrap">
                   {userRoute.map((idx, i) => (
                     <span key={i}>
@@ -931,8 +954,8 @@ export default function TSPRealGame() {
           else                       { verdict = '🔁 Keep trying';  verdictColor = 'text-ink/60' }
 
           return (
-            <div className="absolute bottom-0 left-0 right-0 pointer-events-none pb-6 px-4 flex justify-center">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 pointer-events-auto">
+            <div className="absolute bottom-0 left-0 right-0 pointer-events-none pb-4 px-3 flex justify-center">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 pointer-events-auto overflow-y-auto max-h-[72vh]">
                 {/* Drag handle / collapse toggle */}
                 <button onClick={() => setResultCollapsed(c => !c)}
                   className="w-full flex justify-center items-center gap-1 text-xs text-ink/40 hover:text-ink/60 mb-2">
@@ -972,7 +995,7 @@ export default function TSPRealGame() {
                   </span>
                 </div>
 
-                <div className="text-[10px] text-ink/50 space-y-1">
+                <div className="text-xs text-ink/50 space-y-1">
                   <div><span className="text-red-400 font-semibold">Your:</span> {userRoute.slice(0,-1).map(i => landmarks[i]?.name).join(' → ')} → {landmarks[userRoute[0]]?.name}</div>
                   <div><span className="text-green-600 font-semibold">Optimal:</span> {optimal.route.slice(0,-1).map(i => landmarks[i]?.name).join(' → ')} → {landmarks[optimal.route[0]]?.name}</div>
                 </div>
@@ -998,7 +1021,7 @@ export default function TSPRealGame() {
       {showStats && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4"
           onClick={() => setShowStats(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 flex flex-col gap-5"
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-bold text-ink">Stats</h2>
@@ -1051,7 +1074,7 @@ export default function TSPRealGame() {
       {showHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4"
           onClick={() => setShowHelp(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 flex flex-col gap-4"
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-bold text-ink">How to Play</h2>
