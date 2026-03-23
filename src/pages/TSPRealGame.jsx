@@ -117,8 +117,8 @@ const CITY_CONFIG = {
     label: 'Yogyakarta',
     flag: '🇮🇩',
     center: [110.3672, -7.7972],
-    dbBbox: [110.35, -7.83, 110.43, -7.77],  // actual OSM data coverage
-    bounds: [110.34, -7.84, 110.45, -7.75],
+    dbBbox: [110.32, -7.86, 110.45, -7.74],  // actual OSM data coverage (full ring road)
+    bounds: [110.30, -7.88, 110.47, -7.72],
     rpcs: {
       getLandmarks: 'get_yogyakarta_landmarks',
       getTspDistances: 'get_yogyakarta_tsp_distances',
