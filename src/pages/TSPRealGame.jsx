@@ -109,6 +109,20 @@ const CITY_CONFIG = {
       getRandomDistances: 'get_munich_random_distances',
       getVertexRoute: 'get_munich_vertex_route',
     }
+  },
+  yogyakarta: {
+    label: 'Yogyakarta',
+    flag: '🇮🇩',
+    center: [110.3672, -7.7972],
+    bounds: [110.34, -7.84, 110.45, -7.75],
+    rpcs: {
+      getLandmarks: 'get_yogyakarta_landmarks',
+      getTspDistances: 'get_yogyakarta_tsp_distances',
+      getRouteGeojson: 'get_yogyakarta_route_geojson',
+      getRandomPoints: 'get_yogyakarta_random_points',
+      getRandomDistances: 'get_yogyakarta_random_distances',
+      getVertexRoute: 'get_yogyakarta_vertex_route',
+    }
   }
 }
 
@@ -701,7 +715,7 @@ export default function TSPRealGame() {
               <div className="text-center">
                 <div className="text-5xl mb-2">🗺️</div>
                 <h1 className="text-2xl font-bold text-ink">TSP Cities</h1>
-                <p className="text-sm text-ink/50 mt-1">🇸🇮 Ljubljana · 🇩🇪 München</p>
+                <p className="text-sm text-ink/50 mt-1">🇸🇮 Ljubljana · 🇩🇪 München · 🇮🇩 Yogyakarta</p>
               </div>
               <div className="flex flex-col gap-3 w-full max-w-xs">
                 <button onClick={() => setPhase('config')} className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90">
@@ -743,7 +757,7 @@ export default function TSPRealGame() {
               <div className="flex flex-col gap-1">
                 <div className="text-xs font-semibold text-ink/40 uppercase tracking-wider">City</div>
                 <div className="flex gap-2">
-                  {[['ljubljana', '🇸🇮 Ljubljana'], ['munich', '🇩🇪 München']].map(([val, label]) => (
+                  {[['ljubljana', '🇸🇮 Ljubljana'], ['munich', '🇩🇪 München'], ['yogyakarta', '🇮🇩 Yogyakarta']].map(([val, label]) => (
                     <button key={val} onClick={() => setCity(val)}
                       className={['flex-1 py-2 text-sm font-medium rounded-lg border transition-colors',
                         city === val ? 'bg-ink text-paper border-ink' : 'bg-white text-ink/60 border-ink/20 hover:border-ink/40'].join(' ')}>
