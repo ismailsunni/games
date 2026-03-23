@@ -262,7 +262,7 @@ function GameMap({ landmarks, userRoute, optRoute, onLandmarkClick, phase, route
       // For random mode unvisited: show idx+1 centered; for landmarks: offset arrow label
       const labelText = isNumbered
         ? String(visitOrder)
-        : isRandom ? String(idx + 1) : `${arrow} ${lm.name}`
+        : isRandom ? lm.name : `${arrow} ${lm.name}`
       const useOffset = !isNumbered && !isRandom
 
       const f = new Feature({ geometry: new Point(fromLonLat([lm.lon, lm.lat])) })
