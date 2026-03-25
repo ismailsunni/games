@@ -31,29 +31,13 @@ function saveStats(stats) {
   localStorage.setItem('colorguesser_namequiz_stats', JSON.stringify(stats))
 }
 
-// Weighted Euclidean RGB distance — human perception (green ~4× more sensitive)
-function colorDist(a, b) {
-  const dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b
-  return Math.sqrt(2 * dr * dr + 4 * dg * dg + 3 * db * db)
-}
-
-// Precompute 10 nearest neighbors for every color (runs once at module load)
-const nearestNeighbors = colors.map((c, i) =>
-  colors
-    .map((other, j) => ({ j, dist: colorDist(c, other) }))
-    .filter(x => x.j !== i)
-    .sort((a, b) => a.dist - b.dist)
-    .slice(0, 10)
-    .map(x => x.j)
-)
-
 function buildRounds(count) {
   // Shuffle indices so we get a random selection of correct colors
   const indices = [...colors.keys()].sort(() => Math.random() - 0.5).slice(0, count)
   return indices.map(correctIdx => {
     const correct = colors[correctIdx]
-    // Pick 3 distractors randomly from the 10 nearest (most similar) colors
-    const distractors = [...nearestNeighbors[correctIdx]]
+    // Neighbors are precomputed at build time — just pick 3 at random
+    const distractors = [...correct.neighbors]
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
       .map(j => colors[j])
