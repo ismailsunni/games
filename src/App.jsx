@@ -9,6 +9,7 @@ import MapGuesser from './pages/MapGuesser'
 import ColorGuesser from './pages/ColorGuesser'
 import RGBGuesser from './pages/RGBGuesser'
 import ColorNameQuiz from './pages/ColorNameQuiz'
+import ColorNameQuizInfinite from './pages/ColorNameQuizInfinite'
 import TSPGame from './pages/TSPGame'
 import TSPRealGame from './pages/TSPRealGame'
 
@@ -35,6 +36,7 @@ export default function App() {
   else if (route === '/colorguesser') page = <ColorGuesser />
   else if (route === '/colorguesser/rgb') page = <RGBGuesser />
   else if (route === '/colorguesser/namequiz') page = <ColorNameQuiz />
+  else if (route === '/colorguesser/namequiz/infinite') page = <ColorNameQuizInfinite />
   else if (route === '/tspgame') page = <TSPGame />
   else if (route === '/tspreal') page = <TSPRealGame />
   else page = <GameList />
