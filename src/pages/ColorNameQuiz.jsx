@@ -331,6 +331,9 @@ export default function ColorNameQuiz({ reverse = false }) {
               <div>
                 <div className="text-sm font-semibold text-ink">{round.correct.name}</div>
                 <div className="text-xs text-ink/50">{toHex(round.correct.r, round.correct.g, round.correct.b).toUpperCase()}</div>
+                {round.correct.description && (
+                  <div className="text-xs text-ink/60 italic mt-1">{round.correct.description}</div>
+                )}
               </div>
               <div className="ml-auto text-2xl">
                 {results[results.length - 1]?.isCorrect ? '✅' : '❌'}

@@ -145,6 +145,9 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
                 <div className="text-xs text-red-400 font-semibold uppercase tracking-wide mb-0.5">You missed</div>
                 <div className="text-sm font-semibold text-ink">{wrongColor.name}</div>
                 <div className="text-xs text-ink/40">{toHex(wrongColor.r, wrongColor.g, wrongColor.b).toUpperCase()}</div>
+                {wrongColor.description && (
+                  <div className="text-xs text-ink/60 italic mt-1">{wrongColor.description}</div>
+                )}
               </div>
             </div>
           )}
@@ -282,6 +285,9 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
               <div>
                 <div className="text-sm font-semibold text-ink">{round.correct.name}</div>
                 <div className="text-xs text-ink/50">{toHex(round.correct.r, round.correct.g, round.correct.b).toUpperCase()}</div>
+                {round.correct.description && (
+                  <div className="text-xs text-ink/60 italic mt-1">{round.correct.description}</div>
+                )}
               </div>
               <div className="ml-auto text-2xl">{lastIsCorrect ? '✅' : '❌'}</div>
             </div>
