@@ -279,10 +279,6 @@ export default function ColorNameQuiz({ reverse = false }) {
               return (
                 <button key={idx} onClick={() => handlePick(idx)} disabled={phase !== 'playing'} className={cls}>
                   <span className="flex items-center gap-3">
-                    <span
-                      className="w-6 h-6 rounded flex-none border border-ink/10"
-                      style={{ background: toHex(opt.r, opt.g, opt.b) }}
-                    />
                     {opt.name}
                     {phase === 'result' && isCorrectOpt && <span className="ml-auto">✓</span>}
                     {phase === 'result' && isPickedOpt && !isCorrectOpt && <span className="ml-auto">✗</span>}
