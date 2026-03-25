@@ -227,6 +227,7 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
           )}
 
           {/* Share buttons */}
+          <div className="text-xs font-semibold text-ink/40 uppercase tracking-wider text-center">Share your result</div>
           <div className="flex gap-2 w-full">
             <button
               onClick={handleShareImage}
