@@ -116,7 +116,7 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
         <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/colorguesser" className="text-accent hover:underline text-sm font-medium">← Back</a>
+          <a href={reverse ? '#/colorguesser/swatchquiz' : '#/colorguesser/namequiz'} className="text-accent hover:underline text-sm font-medium">← Back</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
             ♾️ {reverse ? 'Swatch → Name' : 'Name → Swatch'}
           </h1>
@@ -157,7 +157,7 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
               Try again
             </button>
             <a
-              href="#/colorguesser"
+              href={reverse ? '#/colorguesser/swatchquiz' : '#/colorguesser/namequiz'}
               className="w-full text-center border border-ink/20 text-ink font-medium py-3 rounded-lg hover:border-accent hover:text-accent transition-colors"
             >
               ← Modes
@@ -172,7 +172,7 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
       <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-        <a href="#/colorguesser" className="text-accent hover:underline text-sm font-medium">← Back</a>
+        <a href={reverse ? '#/colorguesser/swatchquiz' : '#/colorguesser/namequiz'} className="text-accent hover:underline text-sm font-medium">← Back</a>
         <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
           ♾️ {reverse ? 'Swatch → Name' : 'Name → Swatch'}
         </h1>
