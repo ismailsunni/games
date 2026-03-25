@@ -13,6 +13,7 @@ import ColorNameQuizInfinite from './pages/ColorNameQuizInfinite'
 import ColorQuizMenu from './pages/ColorQuizMenu'
 import TSPGame from './pages/TSPGame'
 import TSPRealGame from './pages/TSPRealGame'
+import ArithmeticRush from './pages/ArithmeticRush'
 
 function UpdateToast() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
@@ -44,6 +45,7 @@ export default function App() {
   else if (route === '/colorguesser/swatchquiz/infinite') page = <ColorNameQuizInfinite reverse />
   else if (route === '/tspgame') page = <TSPGame />
   else if (route === '/tspreal') page = <TSPRealGame />
+  else if (route === '/arithmetic') page = <ArithmeticRush />
   else page = <GameList />
 
   return (

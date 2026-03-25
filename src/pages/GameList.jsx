@@ -42,6 +42,13 @@ const otherGames = [
     hash: '#/colorguesser',
   },
   {
+    id: 'arithmetic',
+    name: 'Arithmetic Rush',
+    description: '8 levels of timed arithmetic — add, subtract, multiply, divide. 5-question and infinite streak modes.',
+    emoji: '🔢',
+    hash: '#/arithmetic',
+  },
+  {
     id: 'tictactoe',
     name: 'Tic-Tac-Toe',
     description: 'Configurable board size (3×3 to 10×10) and win length. Play against Easy, Medium, or Hard AI.',
