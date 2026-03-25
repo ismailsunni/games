@@ -34,7 +34,7 @@ function buildRound(usedIndices) {
   return { correct, options, correctIdx }
 }
 
-export default function ColorNameQuizInfinite() {
+export default function ColorNameQuizInfinite({ reverse = false }) {
   const [phase, setPhase]       = useState('playing')  // playing | result | gameover
   const [streak, setStreak]     = useState(0)
   const [timeLeft, setTimeLeft] = useState(ROUND_TIME)
@@ -117,7 +117,9 @@ export default function ColorNameQuizInfinite() {
       <div className="min-h-screen bg-paper font-body flex flex-col">
         <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
           <a href="#/colorguesser" className="text-accent hover:underline text-sm font-medium">← Back</a>
-          <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">♾️ Infinite Mode</h1>
+          <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
+            ♾️ {reverse ? 'Swatch → Name' : 'Name → Swatch'}
+          </h1>
           <div className="w-12" />
         </header>
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 max-w-md mx-auto w-full gap-6">
@@ -171,7 +173,9 @@ export default function ColorNameQuizInfinite() {
     <div className="min-h-screen bg-paper font-body flex flex-col">
       <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
         <a href="#/colorguesser" className="text-accent hover:underline text-sm font-medium">← Back</a>
-        <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">♾️ Infinite Mode</h1>
+        <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
+          ♾️ {reverse ? 'Swatch → Name' : 'Name → Swatch'}
+        </h1>
         <div className="text-sm font-bold text-ink/70 w-12 text-right">🔥 {streak}</div>
       </header>
 
@@ -186,55 +190,88 @@ export default function ColorNameQuizInfinite() {
       )}
 
       <div className="flex-1 overflow-auto px-4 py-6 max-w-xl mx-auto w-full flex flex-col gap-6">
-        {/* Color name prompt */}
+        {/* Prompt */}
         <div className="text-center">
           {phase === 'playing' && (
             <div className={`inline-block px-3 py-1 rounded-lg text-sm font-bold bg-white border border-ink/10 tabular-nums mb-3 ${timeLeft <= 5 ? 'text-red-500' : 'text-ink'}`}>
               {timeLeft}s
             </div>
           )}
-          <div className="font-display text-2xl md:text-3xl font-bold text-ink">
-            {round.correct.name}
+          {reverse ? (
+            <div className="flex justify-center">
+              <div
+                className="w-32 h-32 rounded-2xl border border-ink/10 shadow-md"
+                style={{ background: toHex(round.correct.r, round.correct.g, round.correct.b) }}
+              />
+            </div>
+          ) : (
+            <div className="font-display text-2xl md:text-3xl font-bold text-ink">
+              {round.correct.name}
+            </div>
+          )}
+          <div className="text-ink/50 text-sm mt-3">
+            {reverse ? 'What is the name of this color?' : 'Which swatch matches this color name?'}
           </div>
-          <div className="text-ink/50 text-sm mt-1">Which swatch matches this color name?</div>
         </div>
 
-        {/* 4 swatches */}
-        <div className="grid grid-cols-2 gap-3">
-          {round.options.map((opt, idx) => {
-            const hex = toHex(opt.r, opt.g, opt.b)
-            const isCorrectOpt = idx === correctIdx
-            const isPickedOpt  = idx === picked
-
-            let borderClass = 'border-2 border-transparent'
-            let overlay = null
-
-            if (phase === 'result') {
-              if (isCorrectOpt) {
-                borderClass = 'border-2 border-green-500 ring-2 ring-green-400'
-                overlay = <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl drop-shadow">✓</span></div>
-              } else if (isPickedOpt) {
-                borderClass = 'border-2 border-red-500 ring-2 ring-red-400 opacity-70'
-                overlay = <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl drop-shadow">✗</span></div>
+        {/* Options */}
+        {reverse ? (
+          <div className="flex flex-col gap-3">
+            {round.options.map((opt, idx) => {
+              const isCorrectOpt = idx === correctIdx
+              const isPickedOpt  = idx === picked
+              let cls = 'w-full py-4 px-5 rounded-xl border-2 text-left font-medium text-sm transition-all'
+              if (phase === 'result') {
+                if (isCorrectOpt)     cls += ' border-green-500 bg-green-50 text-green-700'
+                else if (isPickedOpt) cls += ' border-red-400 bg-red-50 text-red-600 opacity-80'
+                else                  cls += ' border-ink/10 text-ink/30 opacity-50'
               } else {
-                borderClass = 'border-2 border-transparent opacity-40'
+                cls += ' border-ink/15 bg-white hover:border-accent hover:text-accent cursor-pointer active:scale-[0.98]'
               }
-            }
-
-            return (
-              <button
-                key={idx}
-                onClick={() => handlePick(idx)}
-                disabled={phase !== 'playing'}
-                className={`relative rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-default disabled:hover:scale-100 ${borderClass}`}
-                style={{ background: hex, aspectRatio: '1' }}
-                aria-label={phase === 'result' ? opt.name : `Color option ${idx + 1}`}
-              >
-                {overlay}
-              </button>
-            )
-          })}
-        </div>
+              return (
+                <button key={idx} onClick={() => handlePick(idx)} disabled={phase !== 'playing'} className={cls}>
+                  <span className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded flex-none border border-ink/10"
+                      style={{ background: toHex(opt.r, opt.g, opt.b) }} />
+                    {opt.name}
+                    {phase === 'result' && isCorrectOpt  && <span className="ml-auto">✓</span>}
+                    {phase === 'result' && isPickedOpt && !isCorrectOpt && <span className="ml-auto">✗</span>}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {round.options.map((opt, idx) => {
+              const hex = toHex(opt.r, opt.g, opt.b)
+              const isCorrectOpt = idx === correctIdx
+              const isPickedOpt  = idx === picked
+              let borderClass = 'border-2 border-transparent'
+              let overlay = null
+              if (phase === 'result') {
+                if (isCorrectOpt) {
+                  borderClass = 'border-2 border-green-500 ring-2 ring-green-400'
+                  overlay = <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl drop-shadow">✓</span></div>
+                } else if (isPickedOpt) {
+                  borderClass = 'border-2 border-red-500 ring-2 ring-red-400 opacity-70'
+                  overlay = <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl drop-shadow">✗</span></div>
+                } else {
+                  borderClass = 'border-2 border-transparent opacity-40'
+                }
+              }
+              return (
+                <button key={idx} onClick={() => handlePick(idx)} disabled={phase !== 'playing'}
+                  className={`relative rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-default disabled:hover:scale-100 ${borderClass}`}
+                  style={{ background: hex, aspectRatio: '1' }}
+                  aria-label={phase === 'result' ? opt.name : `Color option ${idx + 1}`}
+                >
+                  {overlay}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Result feedback */}
         {phase === 'result' && (

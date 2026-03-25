@@ -37,6 +37,8 @@ export default function App() {
   else if (route === '/colorguesser/rgb') page = <RGBGuesser />
   else if (route === '/colorguesser/namequiz') page = <ColorNameQuiz />
   else if (route === '/colorguesser/namequiz/infinite') page = <ColorNameQuizInfinite />
+  else if (route === '/colorguesser/swatchquiz') page = <ColorNameQuiz reverse />
+  else if (route === '/colorguesser/swatchquiz/infinite') page = <ColorNameQuizInfinite reverse />
   else if (route === '/tspgame') page = <TSPGame />
   else if (route === '/tspreal') page = <TSPRealGame />
   else page = <GameList />

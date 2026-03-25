@@ -76,7 +76,47 @@ export default function ColorGuesser() {
           </div>
         </a>
 
-        {/* Infinite Mode card */}
+        {/* Swatch → Name card */}
+        <a
+          href="#/colorguesser/swatchquiz"
+          className="w-full bg-white border border-ink/10 rounded-xl p-6 hover:border-accent hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start gap-4">
+            <div className="text-4xl">🎨</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-display text-lg font-semibold text-ink group-hover:text-accent transition-colors">
+                Swatch → Name
+              </div>
+              <div className="text-sm text-ink/60 mt-1">
+                See a color swatch, pick the correct name from 4 options.
+              </div>
+              <div className="text-xs text-ink/30 mt-2">5 rounds</div>
+            </div>
+            <span className="text-accent font-medium text-sm self-center group-hover:underline whitespace-nowrap">Play →</span>
+          </div>
+        </a>
+
+        {/* Swatch → Name Infinite card */}
+        <a
+          href="#/colorguesser/swatchquiz/infinite"
+          className="w-full bg-white border border-ink/10 rounded-xl p-6 hover:border-accent hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start gap-4">
+            <div className="text-4xl">🎨♾️</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-display text-lg font-semibold text-ink group-hover:text-accent transition-colors">
+                Swatch → Name ∞
+              </div>
+              <div className="text-sm text-ink/60 mt-1">
+                Swatch-to-name in infinite mode. One mistake ends it.
+              </div>
+              <div className="text-xs text-ink/30 mt-2">Best streak: {infStats.bestStreak || '—'}</div>
+            </div>
+            <span className="text-accent font-medium text-sm self-center group-hover:underline whitespace-nowrap">Play →</span>
+          </div>
+        </a>
+
+        {/* Name → Swatch Infinite card */}
         <a
           href="#/colorguesser/namequiz/infinite"
           className="w-full bg-white border border-ink/10 rounded-xl p-6 hover:border-accent hover:shadow-md transition-all group"
