@@ -1,7 +1,51 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { colors } from '../data/colors'
 
 const ROUND_TIME = 15  // tighter timer for infinite mode
+const GAME_URL = 'https://ismailsunni.id/games/#/colorguesser'
+
+function streakToEmojis(streak) {
+  if (streak === 0) return '💀'
+  const full = Math.min(Math.floor(streak / 2), 10)
+  const half = streak % 2 === 1 && full < 10 ? 1 : 0
+  return '🔥'.repeat(full) + (half ? '✨' : '')
+}
+
+async function generateScoreCard(streak, reverse) {
+  const SIZE = 1080, PAD = 80
+  const canvas = document.createElement('canvas')
+  canvas.width = SIZE; canvas.height = SIZE
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#1a1a2e'
+  ctx.fillRect(0, 0, SIZE, SIZE)
+  let y = PAD
+  // Title
+  ctx.font = 'bold 44px system-ui, sans-serif'; ctx.fillStyle = '#f59e0b'; ctx.textAlign = 'left'
+  ctx.fillText('🎨 Color Name Quiz', PAD, y + 44); y += 80
+  // Mode
+  ctx.font = '28px system-ui, sans-serif'; ctx.fillStyle = '#94a3b8'
+  ctx.fillText(reverse ? 'Swatch → Name  ·  Infinite' : 'Name → Swatch  ·  Infinite', PAD, y + 28); y += 70
+  // Divider
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 2
+  ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(SIZE - PAD, y); ctx.stroke(); y += 50
+  // Streak number
+  ctx.textAlign = 'center'
+  ctx.font = 'bold 160px system-ui, sans-serif'
+  ctx.fillStyle = streak > 0 ? '#f59e0b' : '#ef4444'
+  ctx.fillText(streak, SIZE / 2, y + 160); y += 200
+  ctx.font = '36px system-ui, sans-serif'; ctx.fillStyle = '#94a3b8'
+  ctx.fillText('correct in a row', SIZE / 2, y); y += 80
+  // Emoji bar
+  ctx.font = '56px system-ui, sans-serif'
+  ctx.fillText(streakToEmojis(streak) || '—', SIZE / 2, y + 56); y += 120
+  // Divider
+  ctx.strokeStyle = '#334155'
+  ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(SIZE - PAD, y); ctx.stroke(); y += 50
+  // URL
+  ctx.font = '26px system-ui, sans-serif'; ctx.fillStyle = '#475569'
+  ctx.fillText(GAME_URL, SIZE / 2, y + 26)
+  return canvas
+}
 
 function toHex(r, g, b) {
   return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')
@@ -37,6 +81,7 @@ function buildRound(usedIndices) {
 export default function ColorNameQuizInfinite({ reverse = false }) {
   const [phase, setPhase]       = useState('playing')  // playing | result | gameover
   const [streak, setStreak]     = useState(0)
+  const [shareStatus, setShareStatus] = useState(null) // null | 'generating' | 'copied' | 'downloaded'
   const [timeLeft, setTimeLeft] = useState(ROUND_TIME)
   const [picked, setPicked]     = useState(null)
   const [wrongColor, setWrongColor] = useState(null)  // the color that ended the run
@@ -97,6 +142,35 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
     }
   }
 
+  async function handleShareImage() {
+    setShareStatus('generating')
+    const canvas = await generateScoreCard(streak, reverse)
+    canvas.toBlob(async blob => {
+      const file = new File([blob], 'color-quiz-streak.png', { type: 'image/png' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: 'Color Name Quiz' }); setShareStatus(null); return }
+        catch (e) { if (e.name === 'AbortError') { setShareStatus(null); return } }
+      }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+      a.download = 'color-quiz-streak.png'; a.click()
+      setShareStatus('downloaded'); setTimeout(() => setShareStatus(null), 3000)
+    })
+  }
+
+  async function handleShareText() {
+    const mode = reverse ? 'Swatch→Name' : 'Name→Swatch'
+    const text = [
+      `🎨 Color Name Quiz — ${mode} Infinite`,
+      `Streak: ${streak} ${streakToEmojis(streak)}`,
+      GAME_URL,
+    ].join('\n')
+    if (navigator.share) {
+      try { await navigator.share({ text }); return } catch {}
+    }
+    navigator.clipboard.writeText(text).catch(() => {})
+    setShareStatus('copied'); setTimeout(() => setShareStatus(null), 3000)
+  }
+
   function handlePlayAgain() {
     usedRef.current = new Set()
     setStreak(0)
@@ -151,6 +225,23 @@ export default function ColorNameQuizInfinite({ reverse = false }) {
               </div>
             </div>
           )}
+
+          {/* Share buttons */}
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={handleShareImage}
+              disabled={shareStatus === 'generating'}
+              className="flex-1 bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white font-semibold py-3 px-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
+            >
+              {shareStatus === 'generating' ? '⏳' : shareStatus === 'downloaded' ? '✓ Saved!' : '📸 Image'}
+            </button>
+            <button
+              onClick={handleShareText}
+              className="flex-1 border border-ink/20 text-ink font-semibold py-3 px-3 rounded-lg hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-1.5 text-sm"
+            >
+              {shareStatus === 'copied' ? '✓ Copied!' : '📋 Text'}
+            </button>
+          </div>
 
           <div className="flex flex-col gap-3 w-full">
             <button
