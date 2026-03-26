@@ -10,7 +10,7 @@ export default function ColorQuizMenu({ type }) {
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
-      <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-10 border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
         <a href="#/colorguesser" className="text-accent hover:underline text-sm font-medium">← Back</a>
         <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">{title}</h1>
         <div className="w-12" />
