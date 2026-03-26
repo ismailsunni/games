@@ -56,6 +56,11 @@ export default function ColorQuizMenu({ type }) {
             <span className="text-accent font-medium text-sm self-center group-hover:underline whitespace-nowrap">Play →</span>
           </div>
         </a>
+
+        <a href="#/colorguesser"
+          className="w-full text-center border border-ink/20 text-ink/60 font-medium py-3 rounded-xl hover:border-accent hover:text-accent transition-colors text-sm">
+          ← Back to Color Guesser
+        </a>
       </div>
     </div>
   )
