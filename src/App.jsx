@@ -11,6 +11,9 @@ import RGBGuesser from './pages/RGBGuesser'
 import ColorNameQuiz from './pages/ColorNameQuiz'
 import ColorNameQuizInfinite from './pages/ColorNameQuizInfinite'
 import ColorQuizMenu from './pages/ColorQuizMenu'
+import ColorQuizMenuId from './pages/ColorQuizMenuId'
+import ColorNameQuizId from './pages/ColorNameQuizId'
+import ColorNameQuizIdInfinite from './pages/ColorNameQuizIdInfinite'
 import TSPGame from './pages/TSPGame'
 import TSPRealGame from './pages/TSPRealGame'
 import ArithmeticRush from './pages/ArithmeticRush'
@@ -43,6 +46,12 @@ export default function App() {
   else if (route === '/colorguesser/swatchquiz')        page = <ColorQuizMenu type="swatch" />
   else if (route === '/colorguesser/swatchquiz/play')   page = <ColorNameQuiz reverse />
   else if (route === '/colorguesser/swatchquiz/infinite') page = <ColorNameQuizInfinite reverse />
+  else if (route === '/colorguesser/idquiz')              page = <ColorQuizMenuId type="name" />
+  else if (route === '/colorguesser/idquiz/play')         page = <ColorNameQuizId />
+  else if (route === '/colorguesser/idquiz/infinite')     page = <ColorNameQuizIdInfinite />
+  else if (route === '/colorguesser/idswatchquiz')        page = <ColorQuizMenuId type="swatch" />
+  else if (route === '/colorguesser/idswatchquiz/play')   page = <ColorNameQuizId reverse />
+  else if (route === '/colorguesser/idswatchquiz/infinite') page = <ColorNameQuizIdInfinite reverse />
   else if (route === '/tspgame') page = <TSPGame />
   else if (route === '/tspreal') page = <TSPRealGame />
   else if (route === '/arithmetic') page = <ArithmeticRush />

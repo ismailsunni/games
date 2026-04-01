@@ -81,6 +81,25 @@ export default function ColorGuesser() {
             <span className="text-accent font-medium text-sm self-center group-hover:underline whitespace-nowrap">Play →</span>
           </div>
         </a>
+
+        {/* Indonesian Color Names */}
+        <a href="#/colorguesser/idquiz"
+          className="w-full bg-white border border-ink/10 rounded-xl p-6 hover:border-accent hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start gap-4">
+            <div className="text-4xl">🇮🇩</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-display text-lg font-semibold text-ink group-hover:text-accent transition-colors">
+                Nama Warna Indonesia
+              </div>
+              <div className="text-sm text-ink/60 mt-1">
+                Tebak nama warna khas Indonesia — dari hijau lumut hingga merah saga.
+              </div>
+              <div className="text-xs text-ink/30 mt-2">5 ronde · Mode tanpa batas tersedia</div>
+            </div>
+            <span className="text-accent font-medium text-sm self-center group-hover:underline whitespace-nowrap">Main →</span>
+          </div>
+        </a>
       </div>
     </div>
   )
