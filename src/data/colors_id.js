@@ -15,7 +15,7 @@ export const colorsId = [
       24,
       9,
       102,
-      10
+      133
     ]
   },
   {
@@ -34,7 +34,7 @@ export const colorsId = [
       93,
       99,
       103,
-      97
+      127
     ]
   },
   {
@@ -42,7 +42,7 @@ export const colorsId = [
     r: 128,
     g: 0,
     b: 0,
-    description: "Warna merah tua yang gelap dan dalam, dipakai dalam seragam sekolah dan pakaian formal di Indonesia.",
+    description: "Merah tua gelap seperti darah kering atau warna anggur merah. Sumber: Wikipedia Indonesia.",
     neighbors: [
       12,
       11,
@@ -83,6 +83,7 @@ export const colorsId = [
     description: "Warna merah kecokelatan seperti karat besi yang teroksidasi, warna alam yang sering muncul pada logam tua.",
     neighbors: [
       1,
+      127,
       14,
       0,
       102,
@@ -90,8 +91,7 @@ export const colorsId = [
       96,
       24,
       8,
-      5,
-      3
+      5
     ]
   },
   {
@@ -102,6 +102,7 @@ export const colorsId = [
     description: "Warna merah terang seperti cabai merah segar, sayuran penting dalam masakan Indonesia yang melambangkan kepedasan dan semangat.",
     neighbors: [
       0,
+      133,
       3,
       4,
       8,
@@ -109,8 +110,7 @@ export const colorsId = [
       16,
       11,
       12,
-      9,
-      1
+      9
     ]
   },
   {
@@ -135,20 +135,20 @@ export const colorsId = [
   {
     name: "Merah Jambu",
     r: 255,
-    g: 100,
-    b: 150,
-    description: "Warna merah muda seperti daging buah jambu biji yang matang, buah tropis Indonesia yang rasanya manis asam.",
+    g: 192,
+    b: 203,
+    description: "Merah muda lembut seperti buah jambu merah muda. Sumber: Wikipedia Indonesia.",
     neighbors: [
-      18,
-      17,
-      13,
-      83,
-      87,
-      10,
-      25,
-      9,
-      95,
-      92
+      15,
+      20,
+      19,
+      85,
+      118,
+      106,
+      121,
+      120,
+      101,
+      117
     ]
   },
   {
@@ -184,9 +184,9 @@ export const colorsId = [
       0,
       5,
       13,
+      132,
       1,
-      14,
-      88
+      14
     ]
   },
   {
@@ -224,7 +224,7 @@ export const colorsId = [
       3,
       4,
       100,
-      94
+      127
     ]
   },
   {
@@ -243,7 +243,7 @@ export const colorsId = [
       3,
       4,
       100,
-      94
+      127
     ]
   },
   {
@@ -258,11 +258,11 @@ export const colorsId = [
       25,
       97,
       92,
-      7,
       95,
       9,
       21,
-      23
+      23,
+      93
     ]
   },
   {
@@ -280,8 +280,8 @@ export const colorsId = [
       3,
       8,
       6,
-      98,
-      99
+      127,
+      98
     ]
   },
   {
@@ -291,6 +291,7 @@ export const colorsId = [
     b: 208,
     description: "Warna merah yang sangat muda dan lembut, identik dengan kesan feminin dan kelembutan dalam budaya Indonesia.",
     neighbors: [
+      7,
       20,
       85,
       19,
@@ -299,8 +300,7 @@ export const colorsId = [
       120,
       121,
       17,
-      101,
-      117
+      101
     ]
   },
   {
@@ -318,8 +318,8 @@ export const colorsId = [
       96,
       8,
       5,
-      6,
-      0
+      132,
+      6
     ]
   },
   {
@@ -329,10 +329,10 @@ export const colorsId = [
     b: 172,
     description: "Warna merah muda cerah seperti bulu burung flamingo, burung cantik yang menginspirasi banyak desain mode dan dekorasi.",
     neighbors: [
-      7,
       15,
       18,
       87,
+      7,
       83,
       122,
       120,
@@ -350,14 +350,14 @@ export const colorsId = [
     neighbors: [
       13,
       25,
-      7,
       92,
       17,
       95,
       10,
       23,
       97,
-      83
+      83,
+      122
     ]
   },
   {
@@ -368,6 +368,7 @@ export const colorsId = [
     description: "Warna merah muda pucat yang lembut, populer dalam desain kawaii dan dekorasi kamar tidur modern Indonesia.",
     neighbors: [
       20,
+      7,
       85,
       15,
       106,
@@ -375,8 +376,7 @@ export const colorsId = [
       34,
       110,
       118,
-      111,
-      101
+      111
     ]
   },
   {
@@ -387,6 +387,7 @@ export const colorsId = [
     description: "Warna merah muda yang sangat lembut dan cerah, identik dengan perlengkapan bayi perempuan dan dekorasi kamar bayi.",
     neighbors: [
       19,
+      7,
       15,
       85,
       106,
@@ -394,8 +395,7 @@ export const colorsId = [
       117,
       121,
       120,
-      34,
-      101
+      34
     ]
   },
   {
@@ -420,9 +420,9 @@ export const colorsId = [
   {
     name: "Jingga",
     r: 255,
-    g: 128,
+    g: 127,
     b: 0,
-    description: "Warna jingga murni yang cerah dan energetik, warna yang sering muncul pada buah jeruk dan digunakan dalam upacara adat Indonesia.",
+    description: "Warna jingga cerah antara merah dan kuning, seperti buah jeruk. Sumber: Wikipedia Indonesia.",
     neighbors: [
       29,
       24,
@@ -430,10 +430,10 @@ export const colorsId = [
       26,
       10,
       25,
-      119,
       13,
+      0,
       97,
-      0
+      93
     ]
   },
   {
@@ -447,12 +447,12 @@ export const colorsId = [
       124,
       38,
       36,
-      119,
       123,
       18,
       122,
       92,
-      54
+      54,
+      95
     ]
   },
   {
@@ -464,14 +464,14 @@ export const colorsId = [
     neighbors: [
       4,
       22,
+      127,
       0,
       1,
       102,
       93,
       21,
       97,
-      51,
-      98
+      51
     ]
   },
   {
@@ -485,12 +485,12 @@ export const colorsId = [
       13,
       18,
       92,
-      119,
       123,
       95,
       38,
       10,
-      97
+      97,
+      37
     ]
   },
   {
@@ -502,14 +502,14 @@ export const colorsId = [
     neighbors: [
       31,
       28,
+      119,
       29,
       37,
       33,
       35,
       38,
-      119,
       22,
-      56
+      130
     ]
   },
   {
@@ -523,12 +523,12 @@ export const colorsId = [
       111,
       110,
       112,
+      135,
       34,
       117,
       19,
       106,
-      20,
-      101
+      20
     ]
   },
   {
@@ -538,16 +538,16 @@ export const colorsId = [
     b: 0,
     description: "Warna kuning berkilau seperti logam emas murni, melambangkan kemakmuran dan kejayaan dalam budaya Indonesia.",
     neighbors: [
+      119,
       31,
       33,
       35,
       26,
+      130,
       37,
       38,
       29,
-      56,
-      32,
-      119
+      56
     ]
   },
   {
@@ -596,15 +596,15 @@ export const colorsId = [
     description: "Warna kuning cerah seperti daging buah nanas yang segar, buah tropis Indonesia yang manis dan sedikit asam.",
     neighbors: [
       28,
+      119,
       33,
       26,
       35,
       37,
       38,
+      130,
       29,
-      56,
-      32,
-      119
+      56
     ]
   },
   {
@@ -614,16 +614,16 @@ export const colorsId = [
     b: 58,
     description: "Warna kuning sangat cerah seperti bulu burung kenari, burung peliharaan populer yang terkenal dengan kicauannya yang merdu.",
     neighbors: [
+      130,
       56,
       38,
       33,
       35,
       28,
+      119,
       124,
       31,
-      54,
-      123,
-      26
+      54
     ]
   },
   {
@@ -634,15 +634,15 @@ export const colorsId = [
     description: "Warna kuning cerah seperti biji jagung yang matang, tanaman pangan penting di Indonesia terutama di Nusa Tenggara.",
     neighbors: [
       28,
+      119,
       31,
       35,
+      130,
       26,
       38,
       37,
       56,
-      32,
-      29,
-      119
+      32
     ]
   },
   {
@@ -658,10 +658,10 @@ export const colorsId = [
       113,
       111,
       112,
+      135,
       19,
       101,
-      106,
-      20
+      106
     ]
   },
   {
@@ -673,14 +673,14 @@ export const colorsId = [
     neighbors: [
       33,
       28,
+      119,
       31,
+      130,
       26,
       56,
       37,
       38,
-      32,
-      29,
-      119
+      32
     ]
   },
   {
@@ -710,12 +710,12 @@ export const colorsId = [
     description: "Warna kuning tua seperti bumbu mustard, warna yang hangat dan earthy yang populer dalam dunia fashion kontemporer.",
     neighbors: [
       26,
-      119,
       29,
       38,
       123,
       31,
       28,
+      119,
       56,
       33,
       35
@@ -728,7 +728,6 @@ export const colorsId = [
     b: 50,
     description: "Warna kuning yang sangat cerah dengan kilau keemasan, seperti benang emas pada kain tenun tradisional Indonesia.",
     neighbors: [
-      119,
       37,
       123,
       56,
@@ -736,6 +735,7 @@ export const colorsId = [
       26,
       31,
       28,
+      119,
       23,
       33
     ]
@@ -749,14 +749,14 @@ export const colorsId = [
     neighbors: [
       60,
       51,
+      138,
       53,
       90,
       41,
       49,
       93,
       98,
-      103,
-      99
+      103
     ]
   },
   {
@@ -794,7 +794,7 @@ export const colorsId = [
       60,
       43,
       51,
-      55
+      138
     ]
   },
   {
@@ -943,10 +943,10 @@ export const colorsId = [
       39,
       56,
       124,
-      119,
       46,
       59,
-      61
+      61,
+      54
     ]
   },
   {
@@ -975,16 +975,16 @@ export const colorsId = [
     b: 0,
     description: "Warna hijau kekuningan seperti buah zaitun, warna earthy yang digunakan dalam desain interior bergaya natural.",
     neighbors: [
+      138,
       39,
+      127,
       90,
       93,
       60,
       98,
       24,
       102,
-      43,
-      99,
-      53
+      43
     ]
   },
   {
@@ -1074,12 +1074,12 @@ export const colorsId = [
       123,
       58,
       38,
-      119,
       35,
       44,
       37,
       32,
-      54
+      54,
+      33
     ]
   },
   {
@@ -1113,11 +1113,11 @@ export const colorsId = [
       56,
       44,
       124,
-      119,
       54,
       37,
       39,
-      38
+      38,
+      92
     ]
   },
   {
@@ -1128,6 +1128,7 @@ export const colorsId = [
     description: "Warna hijau yang sedikit abu-abu dan redup, seperti dedaunan yang tertutup debu di pinggir jalan kota.",
     neighbors: [
       105,
+      125,
       109,
       95,
       108,
@@ -1135,8 +1136,7 @@ export const colorsId = [
       79,
       53,
       61,
-      60,
-      103
+      60
     ]
   },
   {
@@ -1174,7 +1174,7 @@ export const colorsId = [
       49,
       109,
       105,
-      53
+      125
     ]
   },
   {
@@ -1186,14 +1186,14 @@ export const colorsId = [
     neighbors: [
       41,
       47,
+      128,
       39,
       55,
       45,
       52,
       53,
       51,
-      60,
-      49
+      138
     ]
   },
   {
@@ -1218,39 +1218,39 @@ export const colorsId = [
   {
     name: "Biru Laut",
     r: 0,
-    g: 77,
-    b: 153,
-    description: "Warna biru sedang seperti lautan dalam Indonesia, negara kepulauan dengan laut terluas kedua di dunia.",
+    g: 255,
+    b: 255,
+    description: "Biru kehijauan cerah seperti air laut dangkal yang jernih. Sumber: Wikipedia Indonesia.",
     neighbors: [
-      80,
-      77,
-      74,
-      67,
-      76,
-      75,
-      68,
-      78,
-      45,
-      66
+      73,
+      72,
+      63,
+      57,
+      42,
+      69,
+      81,
+      50,
+      46,
+      48
     ]
   },
   {
     name: "Biru Dongker",
     r: 0,
-    g: 17,
-    b: 70,
-    description: "Warna biru sangat tua dan gelap (navy), sering digunakan dalam seragam resmi seperti pakaian TNI Angkatan Laut Indonesia.",
+    g: 0,
+    b: 128,
+    description: "Biru tua gelap, sering digunakan pada seragam dan pakaian formal. Sumber: Wikipedia Indonesia.",
     neighbors: [
-      116,
-      89,
-      115,
-      114,
       70,
+      78,
       84,
-      107,
       71,
+      89,
       82,
-      52
+      76,
+      116,
+      77,
+      74
     ]
   },
   {
@@ -1266,10 +1266,10 @@ export const colorsId = [
       76,
       80,
       75,
-      64,
       42,
       57,
-      68
+      68,
+      79
     ]
   },
   {
@@ -1282,13 +1282,13 @@ export const colorsId = [
       77,
       76,
       80,
-      64,
       75,
       74,
       66,
       78,
       68,
-      79
+      79,
+      42
     ]
   },
   {
@@ -1303,11 +1303,11 @@ export const colorsId = [
       42,
       45,
       80,
-      64,
       75,
       57,
       61,
-      77
+      77,
+      67
     ]
   },
   {
@@ -1336,16 +1336,16 @@ export const colorsId = [
     b: 139,
     description: "Warna biru yang sangat tua dan pekat, digunakan sebagai simbol otoritas dan kepercayaan dalam desain institusi.",
     neighbors: [
+      65,
       78,
       84,
       71,
-      65,
       76,
       77,
       89,
-      64,
       82,
-      80
+      80,
+      74
     ]
   },
   {
@@ -1358,9 +1358,9 @@ export const colorsId = [
       84,
       82,
       89,
+      65,
       70,
       78,
-      65,
       76,
       6,
       107,
@@ -1379,11 +1379,11 @@ export const colorsId = [
       57,
       42,
       67,
+      64,
       79,
       77,
       75,
-      80,
-      76
+      80
     ]
   },
   {
@@ -1394,6 +1394,7 @@ export const colorsId = [
     description: "Warna biru kehijauan cerah seperti air kolam renang yang bersih, mengingatkan pada kejernihan air di pantai-pantai indah Indonesia.",
     neighbors: [
       57,
+      64,
       42,
       72,
       66,
@@ -1401,8 +1402,7 @@ export const colorsId = [
       63,
       55,
       61,
-      68,
-      79
+      68
     ]
   },
   {
@@ -1412,7 +1412,6 @@ export const colorsId = [
     b: 128,
     description: "Warna biru gelap kehijauan seperti minyak bumi (petroleum), warna earthy yang dalam dan maskulin.",
     neighbors: [
-      64,
       80,
       77,
       68,
@@ -1421,7 +1420,8 @@ export const colorsId = [
       67,
       76,
       78,
-      107
+      107,
+      114
     ]
   },
   {
@@ -1433,13 +1433,13 @@ export const colorsId = [
     neighbors: [
       80,
       67,
-      64,
       77,
       76,
       74,
       79,
       68,
       105,
+      125,
       109
     ]
   },
@@ -1452,13 +1452,13 @@ export const colorsId = [
     neighbors: [
       67,
       77,
-      64,
       80,
       75,
       78,
       74,
       66,
       70,
+      65,
       71
     ]
   },
@@ -1469,7 +1469,6 @@ export const colorsId = [
     b: 171,
     description: "Warna biru sedang yang kuat dan tajam, digunakan sebagai pigmen dalam kerajinan keramik dan kaca tradisional.",
     neighbors: [
-      64,
       80,
       67,
       76,
@@ -1478,7 +1477,8 @@ export const colorsId = [
       78,
       66,
       68,
-      70
+      70,
+      65
     ]
   },
   {
@@ -1489,15 +1489,15 @@ export const colorsId = [
     description: "Warna biru tua yang dalam seperti zafir (cobalt blue dalam bahasa Arab), warna yang megah dan formal.",
     neighbors: [
       70,
+      65,
       76,
       77,
-      64,
       80,
       67,
       84,
       71,
       74,
-      75
+      126
     ]
   },
   {
@@ -1510,13 +1510,13 @@ export const colorsId = [
       109,
       108,
       105,
+      125,
       104,
       59,
       83,
       75,
       57,
-      40,
-      61
+      40
     ]
   },
   {
@@ -1526,7 +1526,6 @@ export const colorsId = [
     b: 154,
     description: "Warna biru gelap seperti lautan dalam, mengingatkan pada kejayaan pelayaran Nusantara dan para nelayan tradisional Indonesia.",
     neighbors: [
-      64,
       77,
       74,
       67,
@@ -1535,7 +1534,8 @@ export const colorsId = [
       68,
       78,
       45,
-      66
+      66,
+      70
     ]
   },
   {
@@ -1587,10 +1587,10 @@ export const colorsId = [
       104,
       109,
       105,
+      125,
       79,
       87,
       17,
-      7,
       95,
       59
     ]
@@ -1605,9 +1605,9 @@ export const colorsId = [
       71,
       82,
       89,
+      65,
       70,
       78,
-      65,
       114,
       107,
       116,
@@ -1624,13 +1624,13 @@ export const colorsId = [
       20,
       15,
       19,
+      7,
       106,
       120,
       81,
       69,
       118,
-      121,
-      110
+      121
     ]
   },
   {
@@ -1640,16 +1640,16 @@ export const colorsId = [
     b: 211,
     description: "Warna ungu cerah yang mencolok seperti pelangi warna ketujuh, warna yang kreatif dan imajinatif.",
     neighbors: [
+      137,
+      134,
+      136,
+      131,
       71,
       88,
       84,
       82,
       76,
-      78,
-      16,
-      75,
-      70,
-      87
+      132
     ]
   },
   {
@@ -1661,12 +1661,12 @@ export const colorsId = [
     neighbors: [
       17,
       83,
-      7,
       15,
       85,
       104,
       108,
       120,
+      7,
       109,
       20
     ]
@@ -1678,16 +1678,16 @@ export const colorsId = [
     b: 143,
     description: "Warna ungu merah muda yang sangat mencolok dan berani, populer dalam fashion muda dan seni kontemporer Indonesia.",
     neighbors: [
+      132,
       16,
       9,
       3,
       86,
-      7,
+      131,
+      136,
       10,
       5,
-      21,
-      82,
-      14
+      21
     ]
   },
   {
@@ -1701,12 +1701,12 @@ export const colorsId = [
       84,
       71,
       116,
-      65,
       6,
       114,
       107,
       8,
-      100
+      100,
+      65
     ]
   },
   {
@@ -1756,14 +1756,14 @@ export const colorsId = [
     neighbors: [
       95,
       97,
-      119,
       25,
       123,
       103,
       93,
       18,
       13,
-      23
+      23,
+      59
     ]
   },
   {
@@ -1816,10 +1816,10 @@ export const colorsId = [
       103,
       59,
       105,
+      125,
       93,
       18,
       123,
-      119,
       25
     ]
   },
@@ -1915,7 +1915,7 @@ export const colorsId = [
       99,
       96,
       52,
-      14
+      127
     ]
   },
   {
@@ -1931,10 +1931,10 @@ export const colorsId = [
       117,
       36,
       106,
+      7,
       34,
       19,
-      122,
-      20
+      122
     ]
   },
   {
@@ -1987,11 +1987,11 @@ export const colorsId = [
       40,
       83,
       105,
+      125,
       79,
       122,
       59,
-      120,
-      95
+      120
     ]
   },
   {
@@ -2001,6 +2001,7 @@ export const colorsId = [
     b: 128,
     description: "Warna abu-abu netral di tengah spektrum, seperti langit mendung sebelum hujan turun.",
     neighbors: [
+      125,
       59,
       109,
       108,
@@ -2009,8 +2010,7 @@ export const colorsId = [
       83,
       95,
       103,
-      60,
-      92
+      60
     ]
   },
   {
@@ -2027,9 +2027,9 @@ export const colorsId = [
       19,
       20,
       81,
+      7,
       121,
-      15,
-      117
+      15
     ]
   },
   {
@@ -2063,11 +2063,11 @@ export const colorsId = [
       79,
       83,
       105,
+      125,
       40,
       59,
       120,
-      122,
-      95
+      122
     ]
   },
   {
@@ -2080,13 +2080,13 @@ export const colorsId = [
       108,
       79,
       105,
+      125,
       104,
       59,
       83,
       40,
       95,
-      61,
-      75
+      61
     ]
   },
   {
@@ -2101,11 +2101,11 @@ export const colorsId = [
       113,
       34,
       112,
+      135,
       117,
       19,
       106,
-      20,
-      85
+      20
     ]
   },
   {
@@ -2119,12 +2119,12 @@ export const colorsId = [
       113,
       110,
       112,
+      135,
       34,
       117,
       19,
       20,
-      106,
-      85
+      106
     ]
   },
   {
@@ -2134,6 +2134,7 @@ export const colorsId = [
     b: 255,
     description: "Warna putih murni dan bersih seperti salju, warna yang melambangkan kesucian dan kemurnian.",
     neighbors: [
+      135,
       111,
       27,
       113,
@@ -2142,8 +2143,7 @@ export const colorsId = [
       117,
       19,
       20,
-      106,
-      81
+      106
     ]
   },
   {
@@ -2157,12 +2157,12 @@ export const colorsId = [
       111,
       110,
       112,
+      135,
       34,
       117,
       19,
       106,
-      20,
-      101
+      20
     ]
   },
   {
@@ -2180,8 +2180,8 @@ export const colorsId = [
       6,
       116,
       91,
-      65,
-      89
+      89,
+      99
     ]
   },
   {
@@ -2191,8 +2191,8 @@ export const colorsId = [
     b: 8,
     description: "Warna hitam yang sangat pekat dan gelap, seperti kegelapan malam di tengah hutan tanpa cahaya.",
     neighbors: [
+      129,
       116,
-      65,
       114,
       89,
       100,
@@ -2210,8 +2210,8 @@ export const colorsId = [
     b: 40,
     description: "Warna hitam dengan nuansa biru yang sangat gelap, seperti langit malam di lautan dalam yang jauh dari cahaya kota.",
     neighbors: [
-      65,
       115,
+      129,
       114,
       89,
       107,
@@ -2254,29 +2254,29 @@ export const colorsId = [
       120,
       36,
       122,
+      7,
       20,
       19,
-      15,
-      117
+      15
     ]
   },
   {
     name: "Emas",
-    r: 212,
-    g: 175,
-    b: 55,
-    description: "Warna kuning berkilau seperti logam emas murni, mineral berharga yang ditambang di Papua, Kalimantan, dan Sumatra.",
+    r: 255,
+    g: 215,
+    b: 0,
+    description: "Warna emas seperti logam mulia, kuning kemerahan yang bercahaya. Sumber: Wikipedia Indonesia.",
     neighbors: [
-      123,
+      28,
+      31,
+      33,
+      35,
+      26,
+      130,
       37,
       38,
-      124,
-      92,
-      25,
-      56,
-      58,
-      23,
-      95
+      29,
+      56
     ]
   },
   {
@@ -2284,7 +2284,7 @@ export const colorsId = [
     r: 192,
     g: 192,
     b: 192,
-    description: "Warna abu-abu berkilau seperti logam perak, digunakan dalam perhiasan tradisional Bali, Yogyakarta, dan berbagai daerah lainnya.",
+    description: "Warna abu-abu terang seperti logam perak yang mengkilap. Sumber: Wikipedia Indonesia.",
     neighbors: [
       106,
       118,
@@ -2293,9 +2293,9 @@ export const colorsId = [
       85,
       69,
       40,
+      7,
       15,
-      81,
-      20
+      81
     ]
   },
   {
@@ -2309,12 +2309,12 @@ export const colorsId = [
       101,
       36,
       122,
+      7,
       120,
       106,
       20,
       15,
-      19,
-      117
+      19
     ]
   },
   {
@@ -2343,7 +2343,6 @@ export const colorsId = [
     b: 62,
     description: "Warna kuning kehijauan seperti kulit buah durian yang sudah matang, buah yang dijuluki 'Raja Buah' di Asia Tenggara.",
     neighbors: [
-      119,
       124,
       56,
       58,
@@ -2352,7 +2351,8 @@ export const colorsId = [
       92,
       44,
       23,
-      49
+      49,
+      95
     ]
   },
   {
@@ -2366,12 +2366,278 @@ export const colorsId = [
       44,
       54,
       56,
-      119,
       38,
       23,
       58,
       36,
-      122
+      122,
+      49
+    ]
+  },
+  {
+    name: "Abu-abu",
+    r: 128,
+    g: 128,
+    b: 128,
+    description: "Warna abu-abu standar. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      105,
+      59,
+      109,
+      108,
+      79,
+      104,
+      83,
+      95,
+      103,
+      60
+    ]
+  },
+  {
+    name: "Biru",
+    r: 0,
+    g: 0,
+    b: 255,
+    description: "Warna biru murni dalam model warna RGB. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      78,
+      134,
+      76,
+      70,
+      137,
+      77,
+      67,
+      65,
+      86,
+      66
+    ]
+  },
+  {
+    name: "Cokelat",
+    r: 150,
+    g: 75,
+    b: 0,
+    description: "Warna cokelat dasar seperti tanah liat atau kayu. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      4,
+      102,
+      1,
+      14,
+      96,
+      94,
+      24,
+      98,
+      100,
+      91
+    ]
+  },
+  {
+    name: "Hijau",
+    r: 0,
+    g: 255,
+    b: 0,
+    description: "Warna hijau murni dalam model warna RGB. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      62,
+      49,
+      41,
+      55,
+      58,
+      46,
+      61,
+      39,
+      56,
+      44
+    ]
+  },
+  {
+    name: "Hitam",
+    r: 0,
+    g: 0,
+    b: 0,
+    description: "Warna hitam pekat, tidak memantulkan cahaya sama sekali. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      115,
+      116,
+      89,
+      114,
+      2,
+      100,
+      52,
+      107,
+      11,
+      12
+    ]
+  },
+  {
+    name: "Kuning",
+    r: 255,
+    g: 255,
+    b: 0,
+    description: "Warna kuning cerah murni dalam model warna RGB. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      33,
+      35,
+      28,
+      119,
+      31,
+      32,
+      26,
+      56,
+      38,
+      37
+    ]
+  },
+  {
+    name: "Magenta",
+    r: 255,
+    g: 0,
+    b: 255,
+    description: "Warna merah keunguan cerah, salah satu warna dasar dalam model CMYK. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      136,
+      137,
+      86,
+      88,
+      134,
+      132,
+      87,
+      16,
+      83,
+      17
+    ]
+  },
+  {
+    name: "Mawar",
+    r: 255,
+    g: 0,
+    b: 127,
+    description: "Warna merah muda cerah seperti bunga mawar yang mekar. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      88,
+      16,
+      9,
+      3,
+      5,
+      10,
+      86,
+      21,
+      0,
+      133
+    ]
+  },
+  {
+    name: "Merah",
+    r: 255,
+    g: 0,
+    b: 0,
+    description: "Warna merah murni dalam model warna RGB. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      5,
+      0,
+      3,
+      12,
+      11,
+      4,
+      8,
+      9,
+      2,
+      16
+    ]
+  },
+  {
+    name: "Nila",
+    r: 111,
+    g: 0,
+    b: 255,
+    description: "Warna biru-ungu gelap seperti pewarna nila alami dari tanaman indigo. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      137,
+      86,
+      136,
+      126,
+      76,
+      131,
+      78,
+      71,
+      84,
+      67
+    ]
+  },
+  {
+    name: "Putih",
+    r: 255,
+    g: 255,
+    b: 255,
+    description: "Warna putih bersih, memantulkan semua cahaya. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      112,
+      111,
+      27,
+      113,
+      110,
+      34,
+      117,
+      19,
+      20,
+      106
+    ]
+  },
+  {
+    name: "Ungu",
+    r: 191,
+    g: 0,
+    b: 255,
+    description: "Warna ungu cerah seperti bunga lavender atau terung. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      137,
+      131,
+      86,
+      134,
+      88,
+      87,
+      132,
+      126,
+      71,
+      76
+    ]
+  },
+  {
+    name: "Violet",
+    r: 143,
+    g: 0,
+    b: 255,
+    description: "Warna ungu kebiruan seperti bunga violet atau ujung spektrum cahaya. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      134,
+      136,
+      86,
+      131,
+      126,
+      76,
+      71,
+      88,
+      78,
+      87
+    ]
+  },
+  {
+    name: "Zaitun",
+    r: 128,
+    g: 128,
+    b: 0,
+    description: "Warna hijau kekuningan gelap seperti buah zaitun matang. Sumber: Wikipedia Indonesia.",
+    neighbors: [
+      51,
+      39,
+      127,
+      90,
+      93,
+      60,
+      98,
+      24,
+      102,
+      43
     ]
   }
 ]
