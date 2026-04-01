@@ -6,7 +6,7 @@ A browser-based multi-game collection built with React 19, Vite, and Tailwind CS
 
 - **React 19** + **Vite 7** (no TypeScript — plain JSX)
 - **Tailwind CSS v3** (custom theme: `bg-paper`, `bg-canvas`, `text-ink`, `text-accent`, `font-display`, `font-body`)
-- **gh-pages** for deployment (`npm run deploy`)
+- **GitHub Actions** for deployment (auto-deploys on push to `main`)
 - **No router library** — hash-based routing via custom `useRoute` hook
 
 ## Project Structure
@@ -81,8 +81,15 @@ npm run dev       # Start dev server (Vite HMR)
 npm run build     # Production build → dist/
 npm run preview   # Preview built output locally
 npm run lint      # ESLint
-npm run deploy    # Build + push to gh-pages
 ```
+
+## Deployment
+
+**DO NOT run `npm run deploy` manually.** Deployment is handled automatically by GitHub Actions.
+
+- Push commits to `main` branch → GH Actions builds and deploys to GitHub Pages
+- Workflow: `.github/workflows/deploy.yml`
+- To deploy: `git push origin main` — that's it
 
 ## Notes
 
