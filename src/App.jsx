@@ -17,6 +17,7 @@ import ColorNameQuizIdInfinite from './pages/ColorNameQuizIdInfinite'
 import TSPGame from './pages/TSPGame'
 import TSPRealGame from './pages/TSPRealGame'
 import ArithmeticRush from './pages/ArithmeticRush'
+import UCLGuesser from './pages/UCLGuesser'
 
 function UpdateToast() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
@@ -55,6 +56,7 @@ export default function App() {
   else if (route === '/tspgame') page = <TSPGame />
   else if (route === '/tspreal') page = <TSPRealGame />
   else if (route === '/arithmetic') page = <ArithmeticRush />
+  else if (route === '/uclguesser') page = <UCLGuesser />
   else page = <GameList />
 
   return (
