@@ -44,6 +44,7 @@ function target({ words, vec, norm, index }, answer) {
   return {
     answer,
     sims,
+    order,
     rank: new Map(order.map((i, r) => [i, TOP - r])),
     nearest: order.slice(0, 10).map((i) => words[i]),
     marks: [order[0], order[9], order[TOP - 1]].map((i) => sims[i]),
@@ -63,23 +64,23 @@ function Closeness({ g }) {
   )
 }
 
-function Row({ g, highlight }) {
+function Row({ g, latest }) {
   return (
-    <tr className={highlight ? 'bg-accent/10' : ''}>
+    <tr>
       <td className="py-1.5 pr-2 text-ink/40 tabular-nums">{g.n}</td>
-      <td className="py-1.5 pr-2 font-semibold text-ink">{g.word}</td>
+      <td className={`py-1.5 pr-2 font-semibold whitespace-nowrap ${latest ? 'text-accent' : 'text-ink'}`}>{g.word}{g.hint && ' 💡'}</td>
       <td className="py-1.5 pr-3 text-right tabular-nums text-ink">{g.sim.toFixed(2)}</td>
       <td className="py-1.5 w-1/2"><Closeness g={g} /></td>
     </tr>
   )
 }
 
-function ShareButton({ label, guesses, won }) {
+function ShareButton({ label, guesses, hints, won }) {
   const [copied, setCopied] = useState(false)
   const firstAt = (pred) => guesses.findIndex(pred) + 1 || '–'
   const text = [
     `🧠 Semantika ${label}`,
-    won ? `Found it in ${guesses.length} guesses` : `Gave up after ${guesses.length} guesses`,
+    (won ? `Found it in ${guesses.length} guesses` : `Gave up after ${guesses.length} guesses`) + (hints ? ` (${hints} hint${hints > 1 ? 's' : ''})` : ''),
     `First guess: ${guesses[0]?.sim.toFixed(2) ?? '–'}`,
     `Top 1000 at guess #${firstAt((g) => g.rank)} · top 10 at #${firstAt((g) => g.rank > TOP - 10)}`,
     `${location.origin}${location.pathname}#/semantika`,
@@ -101,13 +102,13 @@ function ShareButton({ label, guesses, won }) {
 
 function Game({ model, answer, initial, onChange, onRestart, label }) {
   const t = useMemo(() => target(model, answer), [model, answer])
-  const [state, setState] = useState(initial || { words: [], gaveUp: false })
+  const [state, setState] = useState({ words: [], hints: [], gaveUp: false, ...initial })
   const [input, setInput] = useState('')
   const [msg, setMsg] = useState('')
 
   const guesses = state.words.map((word, n) => {
     const i = model.index.get(word)
-    return { n: n + 1, word, answer, sim: t.sims[i], rank: t.rank.get(i) }
+    return { n: n + 1, word, answer, sim: t.sims[i], rank: t.rank.get(i), hint: state.hints.includes(word) }
   })
   const won = state.words.includes(answer)
   const over = won || state.gaveUp
@@ -117,6 +118,12 @@ function Game({ model, answer, initial, onChange, onRestart, label }) {
     setState(next)
     onChange?.(next)
   }
+
+  // Reveal a word halfway between the best guess so far and the answer
+  const best = Math.max(0, ...guesses.map((g) => g.rank || 0))
+  let hintRank = Math.ceil((best + TOP) / 2)
+  while (hintRank < TOP && state.words.includes(model.words[t.order[TOP - hintRank]])) hintRank++
+  const hintWord = hintRank < TOP && model.words[t.order[TOP - hintRank]]
 
   function submit(e) {
     e.preventDefault()
@@ -143,7 +150,7 @@ function Game({ model, answer, initial, onChange, onRestart, label }) {
           </p>
           <p className="text-sm text-ink/60">Nearest words: {t.nearest.join(', ')}</p>
           <div className="flex justify-center gap-2">
-            <ShareButton label={label} guesses={guesses} won={won} />
+            <ShareButton label={label} guesses={guesses} hints={state.hints.length} won={won} />
             {onRestart && <button onClick={onRestart} className="border border-ink/20 px-4 py-2 rounded-lg font-semibold text-ink hover:border-accent">New word</button>}
           </div>
         </div>
@@ -159,9 +166,6 @@ function Game({ model, answer, initial, onChange, onRestart, label }) {
             className="flex-1 min-w-0 rounded-lg border border-ink/15 bg-surface px-4 py-2.5 text-ink outline-none focus:border-accent"
           />
           <button className="bg-accent text-white px-4 rounded-lg font-semibold hover:opacity-90">Guess</button>
-          {guesses.length > 0 && (
-            <button type="button" onClick={() => update({ ...state, gaveUp: true })} className="border border-ink/20 px-3 rounded-lg text-sm text-ink/60 hover:border-accent">Give up</button>
-          )}
         </form>
       )}
       {msg && <p className="text-sm text-rose-500">{msg}</p>}
@@ -177,11 +181,28 @@ function Game({ model, answer, initial, onChange, onRestart, label }) {
             </tr>
           </thead>
           <tbody>
-            {latest && <Row g={latest} highlight />}
-            <tr><td colSpan={4} className="border-b border-ink/10" /></tr>
-            {[...guesses].sort((a, b) => b.sim - a.sim).map((g) => <Row key={g.word} g={g} highlight={g === latest} />)}
+            <Row g={latest} latest />
+            {guesses.length > 1 && (
+              <tr><td colSpan={4} className="pt-3 pb-1 border-t border-ink/15 text-xs text-ink/40">Sorted by similarity</td></tr>
+            )}
+            {guesses.filter((g) => g !== latest).sort((a, b) => b.sim - a.sim).map((g) => <Row key={g.word} g={g} />)}
           </tbody>
         </table>
+      )}
+
+      {!over && (
+        <div className="flex justify-center gap-2 pt-2">
+          <button
+            onClick={() => update({ ...state, words: [...state.words, hintWord], hints: [...state.hints, hintWord] })}
+            disabled={!hintWord}
+            className="border border-ink/20 px-4 py-2 rounded-lg font-semibold text-ink hover:border-accent disabled:opacity-40"
+          >
+            💡 Hint
+          </button>
+          {guesses.length > 0 && (
+            <button onClick={() => update({ ...state, gaveUp: true })} className="border border-ink/20 px-4 py-2 rounded-lg font-semibold text-ink hover:border-accent">Give up</button>
+          )}
+        </div>
       )}
     </div>
   )
