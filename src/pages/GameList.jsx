@@ -3,6 +3,17 @@ import { useTheme } from '../hooks/useTheme'
 
 const games = [
   {
+    id: 'katatigadua',
+    name: 'KataTigaDua',
+    description: 'Wordle ×32 in Bahasa Indonesia. Solve 32 five-letter words at once with 37 guesses. Daily and practice modes.',
+    emoji: '🇮🇩',
+    hash: '#/katatigadua',
+    category: 'Word',
+    tile: 'from-red-400 to-rose-600',
+    badge: 'New',
+    featured: true,
+  },
+  {
     id: 'uclguesser',
     name: 'UCL Club Guesser',
     description: 'Guess the mystery Champions League club (1992–2026). Each guess reveals head-to-head record (W/D/L), titles, debut and more.',

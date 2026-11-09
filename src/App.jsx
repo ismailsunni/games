@@ -18,6 +18,7 @@ import TSPGame from './pages/TSPGame'
 import TSPRealGame from './pages/TSPRealGame'
 import ArithmeticRush from './pages/ArithmeticRush'
 import UCLGuesser from './pages/UCLGuesser'
+import KataTigaDua from './pages/KataTigaDua'
 
 function UpdateToast() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
@@ -57,6 +58,7 @@ export default function App() {
   else if (route === '/tspreal') page = <TSPRealGame />
   else if (route === '/arithmetic') page = <ArithmeticRush />
   else if (route === '/uclguesser') page = <UCLGuesser />
+  else if (route === '/katatigadua') page = <KataTigaDua />
   else page = <GameList />
 
   return (
