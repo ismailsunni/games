@@ -162,7 +162,27 @@ function ClubInput({ db, exclude, onPick }) {
   )
 }
 
-function Game({ db, answer, initial, onChange, onRestart }) {
+function ShareButton({ date, hints, won }) {
+  const [copied, setCopied] = useState(false)
+  const rows = hints.map((h) =>
+    [h.country, h.seasons, h.debut, h.best, h.titles].map(([g, a]) => (g === a ? '🟩' : '⬜')).join('') + (h.h2h.length ? ' 🤝' : ''))
+  const text = `⚽ UCL Club Guesser ${date}\n${won ? hints.length : 'X'}/${MAX_GUESSES}\n${rows.join('\n')}\n${location.origin}${location.pathname}#/uclguesser`
+  const share = async () => {
+    try {
+      if (navigator.share) return await navigator.share({ text })
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* share cancelled */ }
+  }
+  return (
+    <button onClick={share} className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90">
+      {copied ? '✅ Copied!' : '📤 Share result'}
+    </button>
+  )
+}
+
+function Game({ db, answer, initial, onChange, onRestart, shareDate }) {
   const [guesses, setGuesses] = useState(initial?.guesses ?? [])
   const [gaveUp, setGaveUp] = useState(initial?.gaveUp ?? false)
   const hints = useMemo(() => guesses.map((g) => hint(db, g, answer)), [db, guesses, answer])
@@ -198,7 +218,12 @@ function Game({ db, answer, initial, onChange, onRestart }) {
           </details>
           {onRestart
             ? <button onClick={onRestart} className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90">Play again</button>
-            : <div className="text-sm text-ink/60">Come back tomorrow for a new club — or try Practice.</div>}
+            : (
+              <div className="flex flex-wrap items-center gap-3">
+                <ShareButton date={shareDate} hints={hints} won={won} />
+                <span className="text-sm text-ink/60">Come back tomorrow for a new club — or try Practice.</span>
+              </div>
+            )}
         </div>
       )}
 
@@ -217,7 +242,7 @@ function Daily({ db }) {
   const date = today()
   const key = `ucl-daily-${date}`
   const onChange = useMemo(() => (state) => save(key, state), [key])
-  return <Game key={date} db={db} answer={dailyAnswer(db.pool, date)} initial={load(key)} onChange={onChange} />
+  return <Game key={date} db={db} answer={dailyAnswer(db.pool, date)} initial={load(key)} onChange={onChange} shareDate={date} />
 }
 
 function Practice({ db }) {
