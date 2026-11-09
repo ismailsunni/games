@@ -202,13 +202,18 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
   const [rot, setRot] = useState({ x: -22, y: 28 })
 
   function onPointerDown(e) {
-    e.currentTarget.setPointerCapture(e.pointerId)
     cancelAnimationFrame(rafRef.current)
     velRef.current = { x: 0, y: 0 }
-    dragRef.current = { px: e.clientX, py: e.clientY }
+    dragRef.current = { px: e.clientX, py: e.clientY, sx: e.clientX, sy: e.clientY }
   }
   function onPointerMove(e) {
     if (!dragRef.current) return
+    // Capture only once it's a real drag — capturing on pointerdown retargets the click away from the cell
+    if (!dragRef.current.dragging) {
+      if (Math.hypot(e.clientX - dragRef.current.sx, e.clientY - dragRef.current.sy) < 5) return
+      dragRef.current.dragging = true
+      e.currentTarget.setPointerCapture(e.pointerId)
+    }
     const dx = e.clientX - dragRef.current.px
     const dy = e.clientY - dragRef.current.py
     velRef.current = { x: dx * 0.5, y: dy * 0.4 }
@@ -216,7 +221,7 @@ function CubeBoard({ squares, xCells, oCells, playerTurn, onCellClick }) {
       x: Math.max(-70, Math.min(60, rotRef.current.x - dy * 0.4)),
       y: rotRef.current.y + dx * 0.5,
     }
-    dragRef.current = { px: e.clientX, py: e.clientY }
+    Object.assign(dragRef.current, { px: e.clientX, py: e.clientY })
     setRot({ ...rotRef.current })
   }
   function onPointerUp() {
