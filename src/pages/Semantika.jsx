@@ -4,6 +4,11 @@ import { answers as answerText } from '../data/semantika.json'
 const DIM = 128
 const TOP = 1000
 const ANSWERS = answerText.split(' ')
+const SORTS = {
+  sim: ['Similarity', (a, b) => a.sim - b.sim],
+  order: ['Guess order', (a, b) => a.n - b.n],
+  alpha: ['A–Z', (a, b) => a.word.localeCompare(b.word)],
+}
 
 const today = () => new Date().toLocaleDateString('en-CA')
 const load = (key) => { try { return JSON.parse(localStorage.getItem(key)) } catch { return null } }
@@ -105,6 +110,7 @@ function Game({ model, answer, initial, onChange, onRestart, label }) {
   const [state, setState] = useState({ words: [], hints: [], gaveUp: false, ...initial })
   const [input, setInput] = useState('')
   const [msg, setMsg] = useState('')
+  const [[sortKey, desc], setSort] = useState(['sim', true])
 
   const guesses = state.words.map((word, n) => {
     const i = model.index.get(word)
@@ -183,9 +189,22 @@ function Game({ model, answer, initial, onChange, onRestart, label }) {
           <tbody>
             <Row g={latest} latest />
             {guesses.length > 1 && (
-              <tr><td colSpan={4} className="pt-3 pb-1 border-t border-ink/15 text-xs text-ink/40">Sorted by similarity</td></tr>
+              <tr>
+                <td colSpan={4} className="pt-3 pb-1 border-t border-ink/15 text-xs text-ink/40">
+                  Sort:
+                  {Object.entries(SORTS).map(([k, [name]]) => (
+                    <button
+                      key={k}
+                      onClick={() => setSort([k, k === sortKey ? !desc : k === 'sim'])}
+                      className={`ml-2 ${k === sortKey ? 'font-semibold text-accent' : 'hover:text-ink'}`}
+                    >
+                      {name}{k === sortKey && (desc ? ' ↓' : ' ↑')}
+                    </button>
+                  ))}
+                </td>
+              </tr>
             )}
-            {guesses.filter((g) => g !== latest).sort((a, b) => b.sim - a.sim).map((g) => <Row key={g.word} g={g} />)}
+            {guesses.filter((g) => g !== latest).sort((a, b) => SORTS[sortKey][1](a, b) * (desc ? -1 : 1)).map((g) => <Row key={g.word} g={g} />)}
           </tbody>
         </table>
       )}
