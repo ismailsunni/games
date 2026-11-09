@@ -229,6 +229,12 @@ export default function KataTigaDua() {
         </div>
         {!data ? <p className="text-ink/50 py-16 text-center">Loading words…</p>
           : mode === 'daily' ? <Daily data={data} /> : <Practice data={data} />}
+        <p className="py-6 text-center text-xs text-ink/40">
+          Kata dari KBBI (Badan Bahasa, Kemendikbudristek) via{' '}
+          <a href="https://github.com/damzaky/kumpulan-kata-bahasa-indonesia-KBBI" className="underline hover:text-accent">damzaky/kumpulan-kata-bahasa-indonesia-KBBI</a>
+          {' '}· Frekuensi kata:{' '}
+          <a href="https://github.com/hermitdave/FrequencyWords" className="underline hover:text-accent">hermitdave/FrequencyWords</a> (CC BY-SA 4.0)
+        </p>
       </main>
     </div>
   )
