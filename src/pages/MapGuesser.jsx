@@ -3,7 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import Map from 'ol/Map'
 import View from 'ol/View'
 import TileLayer from 'ol/layer/Tile'
+import VectorTileLayer from 'ol/layer/VectorTile'
 import XYZ from 'ol/source/XYZ'
+import { Attribution } from 'ol/control'
+import { applyBackground, applyStyle } from 'ol-mapbox-style'
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
@@ -20,15 +23,34 @@ const TOTAL_ROUNDS = 5
 const ROUND_TIME = 30
 
 const BASEMAPS = {
-  nolabels: {
-    label: 'Streets',
-    url: 'https://basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
-  },
-  satellite: {
-    label: 'Satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  },
+  nolabels: { label: 'Streets' },
+  satellite: { label: 'Satellite' },
 }
+
+// OpenFreeMap (free OSM vector tiles, no key) with all label/icon layers removed
+let streetStyle
+const loadStreetStyle = () => (streetStyle ??= fetch('https://tiles.openfreemap.org/styles/liberty')
+  .then((r) => r.json())
+  .then((s) => ({ ...s, layers: s.layers.filter((l) => l.type === 'background' || (l.source === 'openmaptiles' && l.type !== 'symbol')) })))
+
+function basemapLayer(key) {
+  if (key === 'satellite') {
+    return new TileLayer({
+      source: new XYZ({
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attributions: 'Tiles © Esri',
+      }),
+    })
+  }
+  const layer = new VectorTileLayer({ declutter: false })
+  loadStreetStyle().then((style) => {
+    applyStyle(layer, style, 'openmaptiles')
+    applyBackground(layer, style)
+  })
+  return layer
+}
+
+const mapControls = () => [new Attribution({ collapsible: true, collapsed: true })]
 
 const FILTER_LABELS = {
   all: 'All Cities',
@@ -166,8 +188,6 @@ export default function MapGuesser() {
   const guessMapInstance = useRef(null)
   const explorerMapInstance = useRef(null)
   const explorerCityVecSource = useRef(null)
-  const qTileLayerRef = useRef(null)
-  const gTileLayerRef = useRef(null)
   const guessVectorSource = useRef(null)
   const guessLayerRef = useRef(null)
   const cityPinSource = useRef(null)
@@ -207,10 +227,7 @@ export default function MapGuesser() {
     if (!roundCities || mapsInitialized.current) return
     mapsInitialized.current = true
 
-    const qTileLayer = new TileLayer({
-      source: new XYZ({ url: BASEMAPS.nolabels.url }),
-    })
-    qTileLayerRef.current = qTileLayer
+    const qTileLayer = basemapLayer('nolabels')
 
     // City center pin on question map
     const pinSource = new VectorSource()
@@ -231,7 +248,7 @@ export default function MapGuesser() {
       target: questionMapRef.current,
       layers: [qTileLayer, pinLayer],
       interactions: defaultInteractions(),
-      controls: [],
+      controls: mapControls(),
       view: new View({
         center: fromLonLat([city.lng, city.lat]),
         zoom: zoom,
@@ -241,10 +258,7 @@ export default function MapGuesser() {
     })
     questionMapInstance.current = qMap
 
-    const gTileLayer = new TileLayer({
-      source: new XYZ({ url: BASEMAPS.nolabels.url }),
-    })
-    gTileLayerRef.current = gTileLayer
+    const gTileLayer = basemapLayer('nolabels')
 
     const vSource = new VectorSource()
     guessVectorSource.current = vSource
@@ -255,7 +269,7 @@ export default function MapGuesser() {
       target: guessMapRef.current,
       layers: [gTileLayer, vLayer],
       interactions: defaultInteractions(),
-      controls: [],
+      controls: mapControls(),
       view: new View({
         center: fromLonLat(filter === 'indonesia' ? [118, -2.5] : filter === 'europe' ? [15, 50] : [0, 20]),
         zoom: filter === 'indonesia' ? 4 : filter === 'europe' ? 4 : 2,
@@ -283,14 +297,10 @@ export default function MapGuesser() {
     view.setZoom(zoom)
   }, [zoom])
 
-  // Update basemap tile URLs when basemap changes
+  // Swap the base layer (index 0) when basemap changes
   useEffect(() => {
-    const url = BASEMAPS[basemap].url
-    if (qTileLayerRef.current) {
-      qTileLayerRef.current.setSource(new XYZ({ url }))
-    }
-    if (gTileLayerRef.current) {
-      gTileLayerRef.current.setSource(new XYZ({ url }))
+    for (const map of [questionMapInstance.current, guessMapInstance.current]) {
+      map?.getLayers().setAt(0, basemapLayer(basemap))
     }
   }, [basemap])
 
@@ -400,15 +410,13 @@ export default function MapGuesser() {
       },
     })
 
-    const tileLayer = new TileLayer({
-      source: new XYZ({ url: BASEMAPS.nolabels.url }),
-    })
+    const tileLayer = basemapLayer('nolabels')
 
     const map = new Map({
       target: explorerMapRef.current,
       layers: [tileLayer, clusterLayer],
       interactions: defaultInteractions(),
-      controls: [],
+      controls: mapControls(),
       view: new View({
         center: fromLonLat([0, 20]),
         zoom: 2,
