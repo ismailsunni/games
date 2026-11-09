@@ -49,10 +49,11 @@ Routes: `/` (GameList), `/tictactoe`, `/tictactoe3d`, `/ginrummy`
    ```jsx
    if (route === '/mygame') return <MyGame />
    ```
-3. Add an entry to the `games` array in `GameList.jsx`:
+3. Add an entry to the `games` array in `GameList.jsx` (`featured: true` puts it in the Featured row; `category` drives the filter chips; `tile` is the card gradient):
    ```js
-   { id: 'mygame', name: 'My Game', description: '...', emoji: '🎲', hash: '#/mygame' }
+   { id: 'mygame', name: 'My Game', description: '...', emoji: '🎲', hash: '#/mygame', category: 'Puzzle', tile: 'from-sky-400 to-indigo-600' }
    ```
+4. Page shell: `<header className="app-header px-4 py-3 flex items-center gap-3">` with `<a href="#/" className="back-link">← Games</a>` (both defined in `src/index.css`).
 
 ## AI (Tic-Tac-Toe)
 
@@ -72,7 +73,8 @@ Uses a custom Tailwind theme. Prefer existing tokens over raw colors:
 - `bg-paper` / `bg-canvas` / `bg-white` for backgrounds
 - `text-ink` / `text-ink/60` / `text-ink/40` for text
 - `text-accent` / `border-accent` / `hover:border-accent` for highlights
-- `font-display` for headings, `font-body` for body text
+- `font-display` (Bricolage Grotesque) for headings, `font-body` (Inter) for body text
+- `app-header` / `back-link` component classes for page headers and back buttons
 
 ## Dev Commands
 

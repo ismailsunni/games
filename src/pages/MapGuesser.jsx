@@ -803,8 +803,8 @@ export default function MapGuesser() {
   if (isHome) {
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Gallery</a>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <a href="#/" className="back-link">← Games</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🌍 Map Guesser</h1>
           <div className="w-20" />
         </header>
@@ -904,8 +904,8 @@ export default function MapGuesser() {
 
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setPhase('home')} className="text-ink/50 hover:text-accent text-sm font-medium">← Home</button>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setPhase('home')} className="back-link">← Home</button>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🗺️ Map Guesser</h1>
           <div className="w-12" />
         </header>
@@ -1041,8 +1041,8 @@ export default function MapGuesser() {
   if (isGameover) {
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Gallery</a>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <a href="#/" className="back-link">← Games</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🗺️ Map Guesser</h1>
           <div className="text-sm text-ink/60 w-20 text-right">Final</div>
         </header>
@@ -1138,7 +1138,7 @@ export default function MapGuesser() {
     <div className="fixed inset-0 flex flex-col bg-paper font-body overflow-hidden">
       {/* Header */}
       <header className="flex-none border-b border-ink/10 bg-canvas px-4 py-2 flex items-center gap-3 z-10">
-        <a href="#/" className="text-accent hover:underline text-sm font-medium whitespace-nowrap">← Gallery</a>
+        <a href="#/" className="back-link whitespace-nowrap">← Games</a>
         <h1 className="font-display text-lg font-bold text-ink flex-1 text-center">🗺️ Map Guesser</h1>
         <div className="text-sm text-ink/60 whitespace-nowrap w-28 text-right">
           Round {currentRound + 1}/5 · {totalScore.toLocaleString()} pts

@@ -7,14 +7,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: '#1a1a2e',
-        paper: '#f8f6f1',
-        canvas: '#edeae3',
-        accent: '#e63946',
+        ink: '#16182b',
+        paper: '#f6f5f1',
+        canvas: '#ecebe5',
+        accent: '#e5383b',
       },
       fontFamily: {
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
-        body: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      borderRadius: {
+        lg: '0.75rem',
+        xl: '1rem',
+        '2xl': '1.25rem',
+      },
+      boxShadow: {
+        sm: '0 1px 2px rgb(22 24 43 / 0.06)',
+        md: '0 4px 14px -2px rgb(22 24 43 / 0.08), 0 2px 4px -2px rgb(22 24 43 / 0.06)',
+        lg: '0 12px 32px -8px rgb(22 24 43 / 0.16), 0 4px 8px -4px rgb(22 24 43 / 0.06)',
       },
       keyframes: {
         dealIn: {

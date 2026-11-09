@@ -745,8 +745,8 @@ export default function TSPRealGame() {
   return (
     <div className="h-[100dvh] flex flex-col bg-paper font-body">
       {/* Header */}
-      <header className="border-b border-ink/10 bg-canvas px-3 py-2 flex items-center gap-2 shrink-0 z-10">
-        <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Gallery</a>
+      <header className="app-header px-3 py-2 flex items-center gap-2 shrink-0 z-10">
+        <a href="#/" className="back-link">← Games</a>
         <h1 className="font-display text-base font-bold text-ink flex-1">🗺️ TSP Cities</h1>
         {phase !== 'home' && (
           <button onClick={() => setShowStats(true)}
@@ -811,7 +811,7 @@ export default function TSPRealGame() {
           <div className="absolute inset-0 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5 overflow-y-auto max-h-[90vh]">
               <div className="flex items-center gap-2">
-                <button onClick={() => setPhase('home')} className="text-ink/50 hover:text-accent text-sm font-medium">← Back</button>
+                <button onClick={() => setPhase('home')} className="back-link">← Back</button>
                 <div className="flex-1 text-center">
                   <div className="text-3xl mb-1">🏙️</div>
                   <h2 className="font-display text-xl font-bold text-ink">Configure Game</h2>

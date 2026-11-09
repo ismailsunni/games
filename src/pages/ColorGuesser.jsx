@@ -12,8 +12,8 @@ export default function ColorGuesser() {
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
-      <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-        <a href="#/" className="text-accent hover:underline text-sm font-medium">← Back</a>
+      <header className="app-header px-4 py-3 flex items-center gap-3">
+        <a href="#/" className="back-link">← Games</a>
         <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🎨 Color Guesser</h1>
         <div className="w-12" />
       </header>

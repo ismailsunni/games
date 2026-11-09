@@ -134,8 +134,8 @@ export default function ColorNameQuiz({ reverse = false }) {
     const rating = getRating(totalScore)
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href={reverse ? '#/colorguesser/swatchquiz' : '#/colorguesser/namequiz'} className="text-accent hover:underline text-sm font-medium">← Back</a>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <a href={reverse ? '#/colorguesser/swatchquiz' : '#/colorguesser/namequiz'} className="back-link">← Back</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
             {reverse ? '🎨 Swatch → Name' : '🏷️ Name → Swatch'}
           </h1>
@@ -204,8 +204,8 @@ export default function ColorNameQuiz({ reverse = false }) {
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
-      <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-        <a href={reverse ? '#/colorguesser/swatchquiz' : '#/colorguesser/namequiz'} className="text-accent hover:underline text-sm font-medium">← Back</a>
+      <header className="app-header px-4 py-3 flex items-center gap-3">
+        <a href={reverse ? '#/colorguesser/swatchquiz' : '#/colorguesser/namequiz'} className="back-link">← Back</a>
         <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
           {reverse ? '🎨 Swatch → Name' : '🏷️ Name → Swatch'}
         </h1>

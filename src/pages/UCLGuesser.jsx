@@ -260,9 +260,9 @@ export default function UCLGuesser() {
 
   return (
     <div className="min-h-screen bg-paper font-body">
-      <header className="border-b border-ink/10 bg-canvas px-6 py-4">
+      <header className="app-header px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Back</a>
+          <a href="#/" className="back-link">← Games</a>
           <div className="flex gap-1 bg-white border border-ink/10 rounded-lg p-1 text-sm">
             {[['daily', '📅 Daily'], ['practice', '🎲 Practice']].map(([m, label]) => (
               <button

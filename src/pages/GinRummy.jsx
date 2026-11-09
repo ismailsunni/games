@@ -684,9 +684,9 @@ export default function GinRummy() {
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
       {/* Header */}
-      <header className="border-b border-ink/10 bg-canvas px-4 py-3 shrink-0">
+      <header className="app-header px-4 py-3 shrink-0">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium shrink-0">← Gallery</a>
+          <a href="#/" className="back-link">← Games</a>
           <h1 className="font-display text-base font-bold text-ink flex-1 text-center">
             🃏 Gin Rummy{screen === 'playing' && <span className="text-ink/40 font-normal text-sm"> · {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</span>}
           </h1>
@@ -992,7 +992,7 @@ export default function GinRummy() {
       {screen === 'home' && (
         <div className="fixed inset-0 bg-canvas z-40 flex flex-col">
           <header className="border-b border-ink/10 px-4 py-3 flex items-center">
-            <a href="#/" className="text-ink/50 hover:text-accent text-sm font-medium">← Gallery</a>
+            <a href="#/" className="back-link">← Games</a>
           </header>
           <div className="flex-1 flex flex-col items-center justify-center p-8">
           <div className="text-5xl mb-4">🃏</div>

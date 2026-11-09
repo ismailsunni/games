@@ -177,8 +177,8 @@ export default function ColorNameQuizIdInfinite({ reverse = false }) {
     const isNewBest = streak >= stats.bestStreak
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href={reverse ? '#/colorguesser/idswatchquiz' : '#/colorguesser/idquiz'} className="text-accent hover:underline text-sm font-medium">← Back</a>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <a href={reverse ? '#/colorguesser/idswatchquiz' : '#/colorguesser/idquiz'} className="back-link">← Back</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
             ♾️ {reverse ? 'Warna → Nama' : 'Nama → Warna'}
           </h1>
@@ -254,8 +254,8 @@ export default function ColorNameQuizIdInfinite({ reverse = false }) {
   // ── Playing / Result ──────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
-      <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-        <a href={reverse ? '#/colorguesser/idswatchquiz' : '#/colorguesser/idquiz'} className="text-accent hover:underline text-sm font-medium">← Back</a>
+      <header className="app-header px-4 py-3 flex items-center gap-3">
+        <a href={reverse ? '#/colorguesser/idswatchquiz' : '#/colorguesser/idquiz'} className="back-link">← Back</a>
         <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">
           ♾️ {reverse ? 'Warna → Nama' : 'Nama → Warna'}
         </h1>

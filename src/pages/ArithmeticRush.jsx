@@ -295,8 +295,8 @@ export default function ArithmeticRush() {
     const st = loadStats()
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/" className="text-accent hover:underline text-sm font-medium">← Back</a>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <a href="#/" className="back-link">← Games</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🔢 Arithmetic Rush</h1>
           <div className="w-12" />
         </header>
@@ -344,8 +344,8 @@ export default function ArithmeticRush() {
     const lv = LEVELS[pendingLevel - 1]
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setPhase('home')} className="text-accent hover:underline text-sm font-medium">← Back</button>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setPhase('home')} className="back-link">← Back</button>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">Level {pendingLevel}: {lv.label}</h1>
           <div className="w-12" />
         </header>
@@ -385,8 +385,8 @@ export default function ArithmeticRush() {
     const maxScore = TOTAL_ROUNDS * (POINTS_BASE + SPEED_BONUS)
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setPhase('home')} className="text-accent hover:underline text-sm font-medium">← Levels</button>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setPhase('home')} className="back-link">← Levels</button>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🔢 Arithmetic Rush</h1>
           <div className="w-12" />
         </header>
@@ -470,8 +470,8 @@ export default function ArithmeticRush() {
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
-      <header className="border-b border-ink/10 bg-canvas px-3 py-2 flex items-center gap-2">
-        <button onClick={() => setPhase('home')} className="text-accent hover:underline text-sm font-medium shrink-0">← Levels</button>
+      <header className="app-header px-3 py-2 flex items-center gap-2">
+        <button onClick={() => setPhase('home')} className="back-link">← Levels</button>
         <div className="flex-1 text-center text-sm font-semibold text-ink/60">
           L{level} · {mode === '5q' ? `${roundNum}/${TOTAL_ROUNDS}` : `🔥 ${streak}`}
         </div>

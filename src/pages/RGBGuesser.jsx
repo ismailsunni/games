@@ -123,8 +123,8 @@ export default function RGBGuesser() {
     const maxPossible = Math.round(Math.sqrt(3) * 255) * TOTAL_ROUNDS
     return (
       <div className="min-h-screen bg-paper font-body flex flex-col">
-        <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-          <a href="#/colorguesser" className="text-accent hover:underline text-sm font-medium">← Back</a>
+        <header className="app-header px-4 py-3 flex items-center gap-3">
+          <a href="#/colorguesser" className="back-link">← Back</a>
           <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🌈 RGB Guesser</h1>
           <div className="text-sm text-ink/60 w-16 text-right">Final</div>
         </header>
@@ -202,8 +202,8 @@ export default function RGBGuesser() {
 
   return (
     <div className="min-h-screen bg-paper font-body flex flex-col">
-      <header className="border-b border-ink/10 bg-canvas px-4 py-3 flex items-center gap-3">
-        <a href="#/colorguesser" className="text-accent hover:underline text-sm font-medium">← Back</a>
+      <header className="app-header px-4 py-3 flex items-center gap-3">
+        <a href="#/colorguesser" className="back-link">← Back</a>
         <h1 className="font-display text-xl font-bold text-ink flex-1 text-center">🌈 RGB Guesser</h1>
         <div className="text-sm text-ink/60 whitespace-nowrap">
           {currentRound + 1}/{TOTAL_ROUNDS}

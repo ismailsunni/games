@@ -2,10 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
-  background-color: #f8f6f1;
-  color: #1a1a2e;
-  margin: 0;
-  min-height: 100vh;
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-paper text-ink font-body m-0 min-h-screen;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1, h2, h3, .font-display {
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    @apply bg-accent/20;
+  }
+  a:focus-visible, button:focus-visible, summary:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+    @apply outline-none ring-2 ring-accent/60 ring-offset-2 ring-offset-paper;
+  }
+  button {
+    @apply transition-[transform,background-color,border-color,color,opacity,box-shadow] duration-150;
+  }
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+@layer components {
+  .app-header {
+    @apply sticky top-0 z-20 border-b border-ink/10 bg-canvas/80 backdrop-blur-md supports-[backdrop-filter]:bg-canvas/70;
+  }
+  .back-link {
+    @apply inline-flex items-center gap-1 shrink-0 rounded-full border border-ink/10 bg-white/70 px-3 py-1.5 text-sm font-medium text-ink/70 transition-colors hover:border-accent/40 hover:text-accent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
