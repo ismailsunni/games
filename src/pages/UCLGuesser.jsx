@@ -93,7 +93,6 @@ function Chip({ label, value, pair: [g, a], arrows = true }) {
 }
 
 function HintCard({ h, correct }) {
-  const last = h.h2h.at(-1)
   return (
     <div className={`bg-white border rounded-lg p-3 ${correct ? 'border-green-500' : 'border-ink/10'}`}>
       <div className="font-display font-semibold text-ink mb-2">{correct && '✅ '}{h.guess}</div>
@@ -109,8 +108,7 @@ function HintCard({ h, correct }) {
           {h.h2h.length ? (
             <>
               <span className="font-semibold text-accent">Met {h.h2h.length}×</span>{' '}
-              <span className="text-ink/50">({h.guess}: W{h.record[0]} D{h.record[1]} L{h.record[2]})</span>
-              <div>Latest: {fmtMatch(last)} · {STAGES[last.stage][0]}, {fmtDate(last.date)}</div>
+              <span className="text-ink/50">· {h.guess}: {h.record[0]}W {h.record[1]}D {h.record[2]}L</span>
             </>
           ) : (
             <>Never met · <span className="font-semibold">{h.dist} steps</span> apart via common opponents</>

@@ -2,7 +2,7 @@ const featuredGames = [
   {
     id: 'uclguesser',
     name: 'UCL Club Guesser',
-    description: 'Guess the mystery Champions League club (1992–2026). Each guess reveals head-to-head record, latest meeting, and more. Daily & practice modes.',
+    description: 'Guess the mystery Champions League club (1992–2026). Each guess reveals head-to-head record (W/D/L), titles, debut and more. Daily & practice modes.',
     emoji: '⚽',
     hash: '#/uclguesser',
     featured: true,
