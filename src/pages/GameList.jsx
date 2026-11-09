@@ -3,6 +3,17 @@ import { useTheme } from '../hooks/useTheme'
 
 const games = [
   {
+    id: 'semantika',
+    name: 'Semantika',
+    description: 'Guess the secret Indonesian word by meaning. Each guess shows how semantically close it is. Daily and practice modes.',
+    emoji: '🧠',
+    hash: '#/semantika',
+    category: 'Word',
+    tile: 'from-violet-400 to-purple-700',
+    badge: 'New',
+    featured: true,
+  },
+  {
     id: 'katatigadua',
     name: 'KataTigaDua',
     description: 'Wordle ×32 in Bahasa Indonesia. Solve 32 five-letter words at once with 37 guesses. Daily and practice modes.',
@@ -10,7 +21,6 @@ const games = [
     hash: '#/katatigadua',
     category: 'Word',
     tile: 'from-red-400 to-rose-600',
-    badge: 'New',
     featured: true,
   },
   {
