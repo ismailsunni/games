@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTheme } from '../hooks/useTheme'
 
 const games = [
   {
@@ -132,6 +133,7 @@ function GameCard({ game, large }) {
 export default function GameList() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
+  const [dark, toggleTheme] = useTheme()
 
   const q = query.trim().toLowerCase()
   const filtered = games.filter(
@@ -149,6 +151,13 @@ export default function GameList() {
         <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 left-10 h-72 w-72 rounded-full bg-sky-400/15 blur-3xl" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <button
+            onClick={toggleTheme}
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="absolute top-4 right-4 sm:right-6 h-10 w-10 rounded-full border border-ink/10 bg-surface/70 text-lg shadow-sm hover:border-ink/30"
+          >
+            {dark ? '☀️' : '🌙'}
+          </button>
           <h1 className="font-display text-5xl sm:text-6xl font-extrabold text-ink leading-none">
             🌍 Orb<span className="text-accent">IS</span>
           </h1>

@@ -75,6 +75,7 @@ Uses a custom Tailwind theme. Prefer existing tokens over raw colors:
 - `text-accent` / `border-accent` / `hover:border-accent` for highlights
 - `font-display` (Bricolage Grotesque) for headings, `font-body` (Inter) for body text
 - `app-header` / `back-link` component classes for page headers and back buttons
+- Dark mode: `ink`/`paper`/`canvas`/`surface`/`accent` are CSS variables flipped by `.dark` on `<html>` (toggle on the home page, defaults to system). Prefer tokens (`bg-surface` over `bg-white`); legacy light utilities are remapped at the bottom of `src/index.css`
 
 ## Dev Commands
 
